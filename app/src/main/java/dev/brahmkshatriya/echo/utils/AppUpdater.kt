@@ -212,7 +212,7 @@ object AppUpdater {
         val messageFlow = app.messageFlow
         // (!) LOCALE-RESOLVED, AND THAT IS A HAZARD, NOT A DETAIL. This getString decides WHICH REPO the
         // app fetches its own updates from, and values-bn/strings.xml carries its own copy of
-        // app_github_repo. The two are identical today (rschwertley/gladix, checked 2026-09-05), so
+        // app_github_repo. The two are identical today (Doggo785/evoe, checked 2026-09-25), so
         // nothing is wrong right now — but a device in that locale reads the override, not values/, and a
         // divergence would silently point self-update at a different repo for those users only.
         // `translatable="false"` does NOT prevent this: it is a tooling hint that keeps a string out of

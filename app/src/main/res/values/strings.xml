@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name" translatable="false">Gladix</string>
-    <string name="app_github_repo" translatable="false">rschwertley/gladix</string>
+    <string name="app_name" translatable="false">Evoe</string>
+    <string name="app_github_repo" translatable="false">Doggo785/evoe</string>
     <string name="okay">Okay</string>
     <string name="cancel">Cancel</string>
     <string name="undo">Undo</string>
@@ -177,7 +177,7 @@
     <string name="app">App</string>
     <string name="file">File</string>
     <string name="installation_type">Installation Type</string>
-    <string name="installation_type_summary">App installation will allow the following links to open in Gladix:</string>
+    <string name="installation_type_summary">App installation will allow the following links to open in Evoe:</string>
     <string name="installation_type_warning">Not available if you install the extension as a File.</string>
     <string name="could_not_find_the_file">Could not find the file.</string>
     <string name="extension_installer">Extension Installer</string>
@@ -266,10 +266,10 @@
     <string name="link_tv_device">Link TV Device</string>
     <string name="now_playing">Now Playing</string>
     <string name="coming_soon">Coming soon</string>
-    <string name="tv_pairing_title">Link Gladix on your phone</string>
+    <string name="tv_pairing_title">Link Evoe on your phone</string>
     <string name="tv_pairing_options_intro">Or enter the code another way:</string>
-    <string name="tv_pairing_option_1">1. Scan the QR code above to open Gladix on your phone</string>
-    <string name="tv_pairing_option_2">2. Open Gladix on your phone → Settings → Deezer → Link TV Device → enter the code</string>
+    <string name="tv_pairing_option_1">1. Scan the QR code above to open Evoe on your phone</string>
+    <string name="tv_pairing_option_2">2. Open Evoe on your phone → Settings → Deezer → Link TV Device → enter the code</string>
     <string name="tv_pairing_option_3">3. Visit rschwertley.github.io/gladix/pair.html and enter the code</string>
     <string name="tv_pairing_waiting">Waiting for phone confirmation…</string>
     <string name="tv_pairing_expired">Code expired</string>

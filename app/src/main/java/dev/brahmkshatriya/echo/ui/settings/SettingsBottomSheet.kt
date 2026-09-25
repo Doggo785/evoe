@@ -132,7 +132,7 @@ class SettingsBottomSheet : BottomSheetDialogFragment(R.layout.dialog_settings) 
 
         binding.wiki.setOnClickListener {
             dismiss()
-            requireActivity().openLink("https://github.com/rschwertley/echo#readme")
+            requireActivity().openLink("https://github.com/Doggo785/evoe#readme")
         }
 
         val repo = getString(R.string.app_github_repo)

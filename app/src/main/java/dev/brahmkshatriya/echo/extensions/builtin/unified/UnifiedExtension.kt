@@ -89,7 +89,7 @@ class UnifiedExtension(
             "Unified Extension",
             version = "v${BuildConfig.VERSION_CODE}",
             "All your extensions in one place!",
-            "Gladix",
+            "Evoe",
             isEnabled = true
         )
 

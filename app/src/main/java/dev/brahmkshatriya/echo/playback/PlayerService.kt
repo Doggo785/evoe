@@ -808,7 +808,7 @@ class PlayerService : MediaLibraryService() {
         private const val RESTORE_SNAPSHOT_TTL_MS = 90_000L
 
         const val CLOSE_PLAYER = "close_player"
-        private const val ACTION_CLEAR_QUEUE = "dev.rschwertley.gladix.auto.CLEAR_QUEUE"
+        private const val ACTION_CLEAR_QUEUE = "dev.doggo785.evoe.CLEAR_QUEUE"
         const val SKIP_SILENCE = "skip_silence"
         const val LOUDNESS_NORMALIZATION = "loudness_normalization"
         const val CROSSFADE_ENABLED = "crossfade_enabled"

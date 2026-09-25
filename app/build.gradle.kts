@@ -88,7 +88,7 @@ val version = "3.1." + gitCount.toString().padStart(5, '0')
 //
 // ⚠️ UPLOAD THE ...-release.apk. Nothing enforces that — it is a naming convention, not a gate.
 base {
-    archivesName = "Gladix-v$version"
+    archivesName = "Evoe-v$version"
 }
 
 android {
@@ -96,7 +96,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "dev.rschwertley.gladix.auto"
+        applicationId = "dev.doggo785.evoe"
         minSdk = 24
         targetSdk = 37        // Note: versionCode only increments on git commits. 
         // For local development, consider committing frequently to update the version.
@@ -105,7 +105,7 @@ android {
         // Launcher label goes through a manifest placeholder so the debug variant below can carry a
         // distinct name ("Gladix Debug") without duplicating @string/app_name — a resValue with the
         // same name would clash with strings.xml.
-        manifestPlaceholders["appLabel"] = "Gladix"
+        manifestPlaceholders["appLabel"] = "Evoe"
         // True only when google-services.json is present. Compile-time constant used to guard
         // every Firebase call site so no-JSON builds never load the (compileOnly) Firebase classes.
         buildConfigField("boolean", "HAS_FIREBASE", "$hasGoogleServices")
@@ -182,7 +182,7 @@ android {
         // matchingFallbacks are needed here. Release stays the untouched, shippable variant.
         debug {
             applicationIdSuffix = ".debug"
-            manifestPlaceholders["appLabel"] = "Gladix Debug"
+            manifestPlaceholders["appLabel"] = "Evoe Debug"
         }
         release {
             // ⚠⚠ THE ONLY PROJECT-LEVEL LEVER OVER STUDIO'S SELECTED BUILD VARIANT. Studio
