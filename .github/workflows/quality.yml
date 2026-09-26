@@ -33,10 +33,10 @@ jobs:
       - name: Android platform 37 + build tools
         run: |
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          "$SDKMANAGER" --version
-          "$SDKMANAGER" --list_installed
           yes | "$SDKMANAGER" --licenses > /dev/null
-          "$SDKMANAGER" "platforms;android-37" "build-tools;36.0.0" "build-tools;37.0.0"
+          # NOTE: the package path carries the minor version (android-37.0),
+          # plain android-37 does not exist in the repository.
+          "$SDKMANAGER" "platforms;android-37.0" "build-tools;36.0.0" "build-tools;37.0.0"
 
       - name: detekt (zero errors, default config)
         run: ./gradlew detekt
