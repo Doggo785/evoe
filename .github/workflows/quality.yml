@@ -24,8 +24,15 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
+
+      # No android-actions/setup-android: v3 crashes installing the obsolete
+      # 'tools' package (sdkmanager exit 1). Runners ship an SDK; add only the
+      # platform and build-tools this project needs (mirrors local SDK).
+      - name: Android platform 37 + build tools
+        run: |
+          yes | sdkmanager --licenses > /dev/null
+          sdkmanager "platforms;android-37" "build-tools;36.0.0" "build-tools;37.0.0"
 
       - name: detekt (zero errors, default config)
         run: ./gradlew detekt
