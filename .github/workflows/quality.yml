@@ -57,11 +57,14 @@ jobs:
           ./gradlew cyclonedxBom
           curl -sSL https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64 -o /tmp/osv-scanner
           chmod +x /tmp/osv-scanner
+          # osv-scanner exits 1 when it finds anything: never let that abort the
+          # step before the severity filter below runs. Only >1 is a real failure.
           /tmp/osv-scanner scan \
             --sbom app/build/reports/cyclonedx/bom.json \
             --sbom common/build/reports/cyclonedx/bom.json \
             --sbom deezer-extension/ext/build/reports/cyclonedx/bom.json \
-            --format json > /tmp/osv.json
+            --format json > /tmp/osv.json || SCAN_EXIT=$?
+          if [ "${SCAN_EXIT:-0}" -gt 1 ]; then echo "osv-scanner failed ($SCAN_EXIT)"; exit 1; fi
           python3 - <<'EOF'
           import json, sys
           bad = []
