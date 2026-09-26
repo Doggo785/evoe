@@ -25,4 +25,18 @@ subprojects {
     // they only produce the numbers CONSTRAINTS.md checks against.
     apply(plugin = "org.jetbrains.kotlinx.kover")
     apply(plugin = "org.cyclonedx.bom")
+    // Scope the SBOM to shipped runtime only. Default scans EVERY resolvable configuration (buildscript,
+    // tooling, test classpaths): first run produced 105 vulns including freemarker/jackson/netty/bcprov,
+    // none of which is in any release runtime classpath. Names below are full-match regexes; exclusion wins.
+    tasks.withType<org.cyclonedx.gradle.CyclonedxDirectTask>().configureEach {
+        includeConfigs.set(
+            listOf(
+                "releaseRuntimeClasspath", // :app (AGP)
+                "androidRuntimeClasspath", // :common android target (KMP)
+                "jvmRuntimeClasspath", // :common jvm target (KMP)
+                "runtimeClasspath" // :deezer-extension (plain JVM)
+            )
+        )
+        skipConfigs.set(listOf("(?i).*test.*"))
+    }
 }
