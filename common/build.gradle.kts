@@ -164,3 +164,14 @@ dokka {
         footerMessage.set("made by <a style=\"color: inherit; text-decoration: underline;\" href=\"https://github.com/brahmkshatriya\">@brahmkshatriya</a>")
     }
 }
+// detekt's default source dirs are src/main/*: KMP keeps its Kotlin in src/commonMain/kotlin, so
+// :common:detekt AND :common:detektBaseline reported NO-SOURCE and the module was never analyzed
+// (CI run 36251552576). Both tasks extend SourceTask; source(...) adds to the task's set instead of
+// replacing it, so the defaults keep working wherever they exist. Wired per task type rather than
+// withType<SourceTask> to stay exact about what is re-pointed.
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    source("src/commonMain/kotlin")
+}
+tasks.withType<io.gitlab.arturbosch.detekt.DetektCreateBaselineTask>().configureEach {
+    source("src/commonMain/kotlin")
+}
