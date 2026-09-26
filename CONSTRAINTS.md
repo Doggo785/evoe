@@ -66,6 +66,6 @@ Codes : `0` propre, `1` violation (bloque), `2` garde inexecutable (pas de merge
 | ID | Regle | Chemin | Motif | Owner | Expire |
 |---|---|---|---|---|---|
 | E1 | `generic-api-key` | `deezer-extension/.../extension/Utils.kt:15` (`SECRET`, fragment Blowfish Deezer) | Constante publique documentee du chiffrement legacy Deezer, pas un credential personnel, non rotatable, requise au dechiffrement. Figee dans `.gitleaksbaseline`. | auteur | 2026-12-26 |
-| E2 | `gcp-api-key` x3 | historique git `app/google-services.json` (commits `2282f3f`, `e93c64e`) | Fichier absent de l'arbre actuel (gitignore, build sans). Reste : verifier que ces cles Firebase sont revoquees/inactives, sinon les roter. Fige dans `.gitleaksbaseline`. | auteur | 2026-12-26 |
+| E2 | `gcp-api-key` x3 | historique git `app/google-services.json` (commits `2282f3f`, `e93c64e`, projet upstream `echo-92245`) | Fichier d'alors absent ensuite de l'arbre (gitignore, build sans). Depuis 2026-09-26 l'app utilise le projet perso `evoe-f4fa4` (`app/google-services.json` local, gitignore). Les cles exposees restent celles de l'upstream, non rotatables par nous. Fige dans `.gitleaksbaseline`. | auteur | 2026-12-26 |
 
 Duree de vie max d'une exception : 90 jours. Sans owner ni echeance, c'est un refus.
