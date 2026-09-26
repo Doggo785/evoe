@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.gms) apply false
     // Declared here (classpath only) so subprojects can apply it below. apply false = not applied to root.
     alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.kover) apply false
+    alias(libs.plugins.cyclonedx) apply false
 }
 
 // Headless Kotlin static analysis applied to EVERY module (:app, :common, :deezer-extension). This is the
@@ -19,4 +21,8 @@ plugins {
 // fallback is to add `alias(libs.plugins.detekt)` to each module's own plugins{} block instead.
 subprojects {
     apply(plugin = "io.gitlab.arturbosch.detekt")
+    // Coverage (kover) + SBOM for the dependency scan. Both are report-only: neither can fail a build,
+    // they only produce the numbers CONSTRAINTS.md checks against.
+    apply(plugin = "org.jetbrains.kotlinx.kover")
+    apply(plugin = "org.cyclonedx.bom")
 }
