@@ -117,8 +117,13 @@ public abstract interface class dev/brahmkshatriya/echo/common/clients/LibraryFe
 }
 
 public abstract interface class dev/brahmkshatriya/echo/common/clients/LikeClient {
+	public fun bustLikedCache (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun isItemLiked (Ldev/brahmkshatriya/echo/common/models/EchoMediaItem;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun likeItem (Ldev/brahmkshatriya/echo/common/models/EchoMediaItem;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/brahmkshatriya/echo/common/clients/LikeClient$DefaultImpls {
+	public static fun bustLikedCache (Ldev/brahmkshatriya/echo/common/clients/LikeClient;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public abstract interface class dev/brahmkshatriya/echo/common/clients/LoginClient {
