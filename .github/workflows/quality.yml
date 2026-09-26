@@ -41,8 +41,13 @@ jobs:
       - name: detekt (zero errors, default config)
         run: ./gradlew detekt
 
+      # `jvmTest` is :common's own test task: it is not part of `test` (no task by that name in :common),
+      # so without it :common tests would only run as a side effect of koverXmlReport's dependencies.
       - name: unit tests + kover report
-        run: ./gradlew test koverXmlReport
+        run: ./gradlew test jvmTest koverXmlReport
+
+      - name: coverage floor (covered lines must not drop)
+        run: ./gradlew koverVerify
 
       - name: :common ABI unchanged or dump committed
         run: ./gradlew :common:checkKotlinAbi

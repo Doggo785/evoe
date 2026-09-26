@@ -46,4 +46,30 @@ subprojects {
         )
         skipConfigs.set(listOf("(?i).*test.*"))
     }
+
+    // Coverage floor, CONSTRAINTS.md "Couverture lignes changees". koverVerify fails the build when a
+    // module's covered LINE count drops below the number measured on 2026-09-26 (56 / 37 / 118) - the same
+    // numbers koverXmlReport prints, which is what makes them checkable rather than aspirational. Ratchet:
+    // the value only moves UP, and only together with the re-measurement committed next to it.
+    val coveredLinesFloor = mapOf(
+        "app" to 56,
+        "common" to 37,
+        "deezer-extension" to 118
+    )
+    coveredLinesFloor[project.name]?.let { floor ->
+        extensions.configure<kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension> {
+            reports {
+                verify {
+                    rule("covered lines must not drop below $floor") {
+                        groupBy.set(kotlinx.kover.gradle.plugin.dsl.GroupingEntityType.APPLICATION)
+                        minBound(
+                            floor,
+                            kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE,
+                            kotlinx.kover.gradle.plugin.dsl.AggregationType.COVERED_COUNT
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
