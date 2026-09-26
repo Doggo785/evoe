@@ -33,6 +33,8 @@ jobs:
       - name: Android platform 37 + build tools
         run: |
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          "$SDKMANAGER" --version
+          "$SDKMANAGER" --list_installed
           yes | "$SDKMANAGER" --licenses > /dev/null
           "$SDKMANAGER" "platforms;android-37" "build-tools;36.0.0" "build-tools;37.0.0"
 
