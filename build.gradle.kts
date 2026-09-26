@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.gms) apply false
     // Declared here (classpath only) so subprojects can apply it below. apply false = not applied to root.
     alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.kover) apply false
+    alias(libs.plugins.cyclonedx) apply false
 }
 
 // Headless Kotlin static analysis applied to EVERY module (:app, :common, :deezer-extension). This is the
@@ -19,4 +21,29 @@ plugins {
 // fallback is to add `alias(libs.plugins.detekt)` to each module's own plugins{} block instead.
 subprojects {
     apply(plugin = "io.gitlab.arturbosch.detekt")
+    // Detekt baseline: pins the 39 pre-existing TooGenericExceptionThrown findings in
+    // :deezer-extension (main is red without it). Rules stay default, no detekt.yml:
+    // only NEW findings fail the build. Refresh after an intended fix with
+    // `./gradlew detektBaseline`, then commit the diff alongside the fix.
+    extensions.configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
+        baseline = file("detekt-baseline.xml")
+    }
+    // Coverage (kover) + SBOM for the dependency scan. Both are report-only: neither can fail a build,
+    // they only produce the numbers CONSTRAINTS.md checks against.
+    apply(plugin = "org.jetbrains.kotlinx.kover")
+    apply(plugin = "org.cyclonedx.bom")
+    // Scope the SBOM to shipped runtime only. Default scans EVERY resolvable configuration (buildscript,
+    // tooling, test classpaths): first run produced 105 vulns including freemarker/jackson/netty/bcprov,
+    // none of which is in any release runtime classpath. Names below are full-match regexes; exclusion wins.
+    tasks.withType<org.cyclonedx.gradle.CyclonedxDirectTask>().configureEach {
+        includeConfigs.set(
+            listOf(
+                "releaseRuntimeClasspath", // :app (AGP)
+                "androidRuntimeClasspath", // :common android target (KMP)
+                "jvmRuntimeClasspath", // :common jvm target (KMP)
+                "runtimeClasspath" // :deezer-extension (plain JVM)
+            )
+        )
+        skipConfigs.set(listOf("(?i).*test.*"))
+    }
 }

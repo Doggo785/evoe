@@ -1,0 +1,846 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:KenBurnsImageView.kt$KenBurnsImageView$dw &lt;= 0 || dh &lt;= 0 || vw &lt;= 0 || vh &lt;= 0</ID>
+    <ID>ComplexCondition:MaterialSliderPreference.kt$MaterialSliderPreference$allowOverride &amp;&amp; !dialogOpened &amp;&amp; byUser &amp;&amp; value == slider.valueTo</ID>
+    <ID>ComplexCondition:PlayerEventListener.kt$PlayerEventListener$chain.any { it is SocketTimeoutException || it is TimeoutCancellationException || it is ConnectException || it is UnknownHostException || it is NoRouteToHostException }</ID>
+    <ID>ComplexCondition:PlayerEventListener.kt$PlayerEventListener$isMissingFile || is401 || isMalformedContent || isTimeout || isExtensionRemoved</ID>
+    <ID>ComplexCondition:PlayerEventListener.kt$PlayerEventListener$seek != null &amp;&amp; (seek.epoch == null || seek.epoch == player.queueEpochOrZero) &amp;&amp; player.currentMediaItem?.mediaId == seek.mediaId &amp;&amp; posBefore &lt; RESTORE_SEEK_BELT_MS</ID>
+    <ID>CyclomaticComplexMethod:AndroidAutoCallback.kt$AndroidAutoCallback$@CallSuper override fun onSetMediaItems( mediaSession: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: MutableList&lt;MediaItem>, startIndex: Int, startPositionMs: Long )</ID>
+    <ID>CyclomaticComplexMethod:AndroidAutoCallback.kt$AndroidAutoCallback$@OptIn(UnstableApi::class) @CallSuper override fun onGetChildren( session: MediaLibrarySession, browser: MediaSession.ControllerInfo, parentId: String, page: Int, pageSize: Int, params: MediaLibraryService.LibraryParams? ): ListenableFuture&lt;LibraryResult&lt;ImmutableList&lt;MediaItem>>></ID>
+    <ID>CyclomaticComplexMethod:AppUpdater.kt$AppUpdater$@Suppress("KotlinConstantConditions") suspend fun updateApp( app: App, ensureInstallPermission: suspend () -> Boolean = { true } ): File?</ID>
+    <ID>CyclomaticComplexMethod:AppUpdater.kt$AppUpdater$suspend fun getGithubUpdateUrl( currentVersion: String, updateUrl: String, client: OkHttpClient, // Enables ETag caching. Optional so AddViewModel's one-off add flow needs no change; every // looping caller SHOULD pass it, since the loop is what spends the quota. context: Context? = null, )</ID>
+    <ID>CyclomaticComplexMethod:AudioEffectsProcessor.kt$AudioEffectsProcessor$override fun queueInput(inputBuffer: ByteBuffer)</ID>
+    <ID>CyclomaticComplexMethod:BaseWidget.kt$BaseWidget$override fun onReceive(context: Context?, intent: Intent?)</ID>
+    <ID>CyclomaticComplexMethod:BaseWidget.kt$BaseWidget.Companion$fun updateView( clazz: Class&lt;*>, controller: MediaController?, image: Bitmap?, context: Context, views: RemoteViews, )</ID>
+    <ID>CyclomaticComplexMethod:EditPlaylistViewModel.kt$EditPlaylistViewModel.Companion$fun &lt;T> computeActions( old: List&lt;T>, new: List&lt;T>, ): MutableList&lt;Action&lt;T>></ID>
+    <ID>CyclomaticComplexMethod:ExceptionUtils.kt$ExceptionUtils$private fun Context.getTitle(throwable: Throwable): String?</ID>
+    <ID>CyclomaticComplexMethod:ExtensionInfoFragment.kt$ExtensionInfoFragment.ExtensionPreference$private fun Setting.addPreferenceTo(preferenceGroup: PreferenceGroup)</ID>
+    <ID>CyclomaticComplexMethod:ExtensionsViewModel.kt$ExtensionsViewModel$fun update(activity: FragmentActivity, force: Boolean)</ID>
+    <ID>CyclomaticComplexMethod:FeedData.kt$FeedData$private suspend fun getFeedSourceData( result: Result&lt;State&lt;Feed.Data&lt;Shelf>>?> ): Result&lt;Pair&lt;Metadata?, PagedData&lt;FeedType>>></ID>
+    <ID>CyclomaticComplexMethod:FeedType.kt$FeedType.Companion$fun List&lt;Shelf>.toFeedType( feedId: String, extId: String, context: EchoMediaItem?, tabId: String?, noVideos: Boolean = false, start: Long = 0, isTv: Boolean = false, ): List&lt;FeedType></ID>
+    <ID>CyclomaticComplexMethod:InstallationUtils.kt$InstallationUtils$suspend fun installApp(activity: FragmentActivity, file: File)</ID>
+    <ID>CyclomaticComplexMethod:LoginFragment.kt$LoginFragment.CustomInput$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>CyclomaticComplexMethod:LyricsFragment.kt$LyricsFragment$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>CyclomaticComplexMethod:MainActivity.kt$MainActivity$private fun setupTvMiniPlayer()</ID>
+    <ID>CyclomaticComplexMethod:MediaHeaderAdapter.kt$MediaHeaderAdapter.Companion$fun Context.getSpan( compact: Boolean, extensionId: String, item: EchoMediaItem, openMediaItem: (String, EchoMediaItem) -> Unit = { a, b -> }, ): SpannableString</ID>
+    <ID>CyclomaticComplexMethod:MediaHeaderAdapter.kt$MediaHeaderAdapter.Success$fun bind(state: MediaState.Loaded&lt;*>)</ID>
+    <ID>CyclomaticComplexMethod:MediaMoreBottomSheet.kt$MediaMoreBottomSheet$fun getActionButtons( client: ExtensionClient?, state: MediaState.Loaded&lt;*>?, )</ID>
+    <ID>CyclomaticComplexMethod:MediaStoreUtils.kt$MediaStoreUtils$private fun Cursor.parseSongQuery( limitValue: Int, folderFilter: Set&lt;String>, blacklistKeywords: List&lt;String>, context: Context, songs: MutableList&lt;Track>, foundPlaylistContent: Boolean, idMap: MutableMap&lt;Long, Track>?, settings: Settings, block: (Track) -> Unit, )</ID>
+    <ID>CyclomaticComplexMethod:MediaStoreUtils.kt$MediaStoreUtils$private fun albumMapToAlbumList( albumMap: MutableMap&lt;Long?, AlbumImpl>, coverCache: HashMap&lt;Long, Pair&lt;File, FileNode>>?, )</ID>
+    <ID>CyclomaticComplexMethod:MediaStoreUtils.kt$MediaStoreUtils$suspend fun getAllSongs( context: Context, settings: Settings )</ID>
+    <ID>CyclomaticComplexMethod:PlayerCallback.kt$PlayerCallback$override fun onCustomCommand( session: MediaSession, controller: MediaSession.ControllerInfo, customCommand: SessionCommand, args: Bundle, ): ListenableFuture&lt;SessionResult></ID>
+    <ID>CyclomaticComplexMethod:PlayerCallback.kt$PlayerCallback$private fun playItem(player: Player, args: Bundle)</ID>
+    <ID>CyclomaticComplexMethod:PlayerColors.kt$PlayerColors.Companion$fun Context.getColorsFrom(bitmap: Bitmap?): PlayerColors?</ID>
+    <ID>CyclomaticComplexMethod:PlayerEventListener.kt$PlayerEventListener$override fun onPlayerError(error: PlaybackException)</ID>
+    <ID>CyclomaticComplexMethod:PlayerEventListener.kt$PlayerEventListener$private fun armBufferingWatchdog()</ID>
+    <ID>CyclomaticComplexMethod:PlayerEventListener.kt$PlayerEventListener$private fun skipFamilyOf(cause: Throwable?, playbackError: PlaybackException?): SkipFamily</ID>
+    <ID>CyclomaticComplexMethod:PlayerFragment.kt$PlayerFragment$private fun configureCollapsing(binding: FragmentPlayerBinding)</ID>
+    <ID>CyclomaticComplexMethod:PlayerFragment.kt$PlayerFragment$private fun configurePlayerControls()</ID>
+    <ID>CyclomaticComplexMethod:PlayerRadio.kt$PlayerRadio$private suspend fun reseedFanOutLocked()</ID>
+    <ID>CyclomaticComplexMethod:PlayerRadio.kt$PlayerRadio.Companion$suspend fun play( player: Player, downloadFlow: StateFlow&lt;List&lt;Downloader.Info>>, app: App, stateFlow: MutableStateFlow&lt;PlayerState.Radio>, loaded: PlayerState.Radio.Loaded, // The extension that owns the PLAYING item, for the endless-queue fallback's catalogue search. // Nullable with a default so a call site that cannot cheaply resolve it still compiles and // simply does not get the fallback — rather than forcing a resolution that could be wrong. extension: Extension&lt;*>? = null, // ⚠⚠ THE CALLER'S NAME, NOT THIS FUNCTION'S. Tagged "station_page" by function until // 2026-09-11, which was a level too coarse to be useful: play() is called by loadPlaylist, // topUpQueue, startRadio, PlayerCallback.radio AND PlayerCallback.trackRadio, so the append // line was identical whichever generated the station - and telling those apart was exactly the // question two device captures could not answer. A log that cannot distinguish its own callers // is not instrumentation, it is decoration. source: String = "station_page", ): PlayResult</ID>
+    <ID>CyclomaticComplexMethod:PlayerTrackAdapter.kt$PlayerTrackAdapter.ViewHolder$fun updateCollapsed()</ID>
+    <ID>CyclomaticComplexMethod:PlayerTvFragment.kt$PlayerTvFragment$private fun configureControls()</ID>
+    <ID>CyclomaticComplexMethod:RadioFallback.kt$RadioFallback$suspend fun similarTracks(extension: Extension&lt;*>, seed: Track): List&lt;Track></ID>
+    <ID>CyclomaticComplexMethod:ResumptionUtils.kt$ResumptionUtils$private fun Context.recoverQueue( app: App, downloads: List&lt;Downloader.Info>, healthMonitor: HealthMonitor? = null, ): List&lt;MediaItem>?</ID>
+    <ID>CyclomaticComplexMethod:SaveToPlaylistViewModel.kt$SaveToPlaylistViewModel$fun saveTracks()</ID>
+    <ID>CyclomaticComplexMethod:SearchFragment.kt$SearchFragment$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>CyclomaticComplexMethod:SettingsBottomSheet.kt$SettingsBottomSheet$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>CyclomaticComplexMethod:SettingsLookFragment.kt$SettingsLookFragment.LookPreference$override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?)</ID>
+    <ID>CyclomaticComplexMethod:TvAwareRecyclerView.kt$TvAwareRecyclerView$override fun focusSearch(focused: View, direction: Int): View?</ID>
+    <ID>DestructuringDeclarationWithTooManyEntries:EditPlaylistHeaderAdapter.kt$EditPlaylistHeaderAdapter$val (title, desc, coverEditable, cover) = data ?: return</ID>
+    <ID>EmptyDefaultConstructor:PagedSource.kt$PagedSource.LoadingException$()</ID>
+    <ID>EmptyElseBlock:ExtensionsViewModel.kt$ExtensionsViewModel$if (it is CancellationException) throw it</ID>
+    <ID>EmptyFunctionBlock:ApkLinkParser.kt$ApkLinkParser.NonCompressedXmlParser.&lt;no name provided>${}</ID>
+    <ID>EmptyFunctionBlock:ColorPickerDialog.kt$ColorPickerDialog.&lt;no name provided>${}</ID>
+    <ID>EmptyFunctionBlock:ExtensionsAddListAdapter.kt$ExtensionsAddListAdapter.Header${}</ID>
+    <ID>EmptyFunctionBlock:ManageExtensionsFragment.kt$ManageExtensionsFragment.&lt;no name provided>${}</ID>
+    <ID>EmptyFunctionBlock:OfflineExtension.kt$OfflineExtension${}</ID>
+    <ID>EmptyFunctionBlock:TestExtension.kt$TestExtension${}</ID>
+    <ID>EmptyFunctionBlock:UiUtils.kt$UiUtils.&lt;no name provided>${}</ID>
+    <ID>ExplicitItLambdaParameter:FeedSort.kt$FeedSort.Artists${ it -> it.map { it.second } }</ID>
+    <ID>ExplicitItLambdaParameter:HorizontalListViewHolder.kt$HorizontalListViewHolder${ index, it -> ShelfType.ThreeTracks( extensionId, context, tabId, index, Triple( it[0], it.getOrNull(1), it.getOrNull(2) ) ) }</ID>
+    <ID>ExplicitItLambdaParameter:LoginFragment.kt$LoginFragment.Selector${ index, it -> val button = ItemExtensionButtonBinding.inflate( layoutInflater, binding.loginToggleGroup, false ).root button.text = it.label button.setIconResource(getIcon(it.icon)) button to { loginViewModel.changeFragment( LoginViewModel.FragmentType.CustomInput(index) ) } }</ID>
+    <ID>ExplicitItLambdaParameter:SettingsLookFragment.kt$SettingsLookFragment.LookPreference${ _, it -> screen.findPreference&lt;Preference>(COLOR_KEY)?.isEnabled = it as Boolean true }</ID>
+    <ID>ExplicitItLambdaParameter:UiViewModel.kt$UiViewModel.Insets${ acc, it -> Insets( acc.top + it.top, acc.bottom + it.bottom, acc.start + it.start, acc.end + it.end ) }</ID>
+    <ID>ImplicitDefaultLocale:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$String.format("%08X/0x%08X", type, data)</ID>
+    <ID>ImplicitDefaultLocale:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$String.format("?id/0x%08X", data)</ID>
+    <ID>ImplicitDefaultLocale:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$String.format("@id/0x%08X", data)</ID>
+    <ID>InstanceOfCheckForException:PlayerCallback.kt$PlayerCallback$e !is CancellationException</ID>
+    <ID>InstanceOfCheckForException:PlayerCallback.kt$PlayerCallback$e !is UnsupportedOperationException</ID>
+    <ID>LargeClass:PlayerCallback.kt$PlayerCallback : AndroidAutoCallback</ID>
+    <ID>LargeClass:PlayerEventListener.kt$PlayerEventListener : Listener</ID>
+    <ID>LargeClass:PlayerFragment.kt$PlayerFragment : Fragment</ID>
+    <ID>LongMethod:AndroidAutoCallback.kt$AndroidAutoCallback$@CallSuper override fun onSetMediaItems( mediaSession: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: MutableList&lt;MediaItem>, startIndex: Int, startPositionMs: Long )</ID>
+    <ID>LongMethod:AndroidAutoCallback.kt$AndroidAutoCallback$@OptIn(UnstableApi::class) @CallSuper override fun onGetChildren( session: MediaLibrarySession, browser: MediaSession.ControllerInfo, parentId: String, page: Int, pageSize: Int, params: MediaLibraryService.LibraryParams? ): ListenableFuture&lt;LibraryResult&lt;ImmutableList&lt;MediaItem>>></ID>
+    <ID>LongMethod:AppUpdater.kt$AppUpdater$@Suppress("KotlinConstantConditions") suspend fun updateApp( app: App, ensureInstallPermission: suspend () -> Boolean = { true } ): File?</ID>
+    <ID>LongMethod:BaseWidget.kt$BaseWidget.Companion$fun updateView( clazz: Class&lt;*>, controller: MediaController?, image: Bitmap?, context: Context, views: RemoteViews, )</ID>
+    <ID>LongMethod:Cached.kt$Cached$suspend inline fun &lt;reified T : EchoMediaItem> loadMedia( app: App, extension: Extension&lt;*>, state: MediaState&lt;T>, preferCache: Boolean = false, )</ID>
+    <ID>LongMethod:EditPlaylistFragment.kt$EditPlaylistFragment$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:EditPlaylistViewModel.kt$EditPlaylistViewModel.Companion$fun &lt;T> computeActions( old: List&lt;T>, new: List&lt;T>, ): MutableList&lt;Action&lt;T>></ID>
+    <ID>LongMethod:ExtensionInfoFragment.kt$ExtensionInfoFragment.ExtensionPreference$override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?)</ID>
+    <ID>LongMethod:ExtensionInfoFragment.kt$ExtensionInfoFragment.ExtensionPreference$private fun Setting.addPreferenceTo(preferenceGroup: PreferenceGroup)</ID>
+    <ID>LongMethod:FeedData.kt$FeedData$private suspend fun getFeedSourceData( result: Result&lt;State&lt;Feed.Data&lt;Shelf>>?> ): Result&lt;Pair&lt;Metadata?, PagedData&lt;FeedType>>></ID>
+    <ID>LongMethod:HistorySortBottomSheet.kt$HistorySortBottomSheet$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:LibraryFragment.kt$LibraryFragment$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:LoginFragment.kt$LoginFragment.CustomInput$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:LyricsFragment.kt$LyricsFragment$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:MediaHeaderAdapter.kt$MediaHeaderAdapter.Companion$fun Context.getSpan( compact: Boolean, extensionId: String, item: EchoMediaItem, openMediaItem: (String, EchoMediaItem) -> Unit = { a, b -> }, ): SpannableString</ID>
+    <ID>LongMethod:MediaStoreUtils.kt$MediaStoreUtils$private fun Cursor.parseSongQuery( limitValue: Int, folderFilter: Set&lt;String>, blacklistKeywords: List&lt;String>, context: Context, songs: MutableList&lt;Track>, foundPlaylistContent: Boolean, idMap: MutableMap&lt;Long, Track>?, settings: Settings, block: (Track) -> Unit, )</ID>
+    <ID>LongMethod:MediaStoreUtils.kt$MediaStoreUtils$suspend fun getAllSongs( context: Context, settings: Settings )</ID>
+    <ID>LongMethod:PlayerCallback.kt$PlayerCallback$private fun playItem(player: Player, args: Bundle)</ID>
+    <ID>LongMethod:PlayerEventListener.kt$PlayerEventListener$override fun onPlayerError(error: PlaybackException)</ID>
+    <ID>LongMethod:PlayerEventListener.kt$PlayerEventListener$private fun armBufferingWatchdog()</ID>
+    <ID>LongMethod:PlayerFragment.kt$PlayerFragment$private fun FragmentPlayerBinding.applyCurrent(item: MediaItem)</ID>
+    <ID>LongMethod:PlayerFragment.kt$PlayerFragment$private fun configureCollapsing(binding: FragmentPlayerBinding)</ID>
+    <ID>LongMethod:PlayerFragment.kt$PlayerFragment$private fun configureColors()</ID>
+    <ID>LongMethod:PlayerFragment.kt$PlayerFragment$private fun configurePlayerControls()</ID>
+    <ID>LongMethod:PlayerMoreFragment.kt$PlayerMoreFragment$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:PlayerRadio.kt$PlayerRadio$private suspend fun reseedFanOutLocked()</ID>
+    <ID>LongMethod:PlayerService.kt$PlayerService$@OptIn(UnstableApi::class) override fun onCreate()</ID>
+    <ID>LongMethod:PlayerTvFragment.kt$PlayerTvFragment$private fun configureControls()</ID>
+    <ID>LongMethod:QualitySelectionBottomSheet.kt$QualitySelectionBottomSheet$@SuppressLint("NotifyDataSetChanged") override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:SaveToPlaylistViewModel.kt$SaveToPlaylistViewModel$fun saveTracks()</ID>
+    <ID>LongMethod:SearchFragment.kt$SearchFragment$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:SettingsBottomSheet.kt$SettingsBottomSheet$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:SettingsLookFragment.kt$SettingsLookFragment.LookPreference$override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?)</ID>
+    <ID>LongMethod:SettingsPlayerFragment.kt$SettingsPlayerFragment.AudioPreference$override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?)</ID>
+    <ID>LongMethod:StreamableMediaSource.kt$StreamableMediaSource$override fun prepareSourceInternal(mediaTransferListener: TransferListener?)</ID>
+    <ID>LongParameterList:AndroidAutoCallback.kt$AndroidAutoCallback.Companion$( id: String, title: String, subtitle: String? = null, browsable: Boolean = true, artWorkUri: Uri? = null, artworkData: ByteArray? = null, type: Int = MediaMetadata.MEDIA_TYPE_MIXED )</ID>
+    <ID>LongParameterList:ButtonsAdapter.kt$ButtonsAdapter.ViewHolder$( parent: ViewGroup, private val viewModel: FeedData, private val listener: FeedClickListener, private val getAllLoaded: () -> List&lt;Track>, private val onCreatePlaylistClick: (() -> Unit)? = null, private val onEditPlaylistClick: (() -> Unit)? = null, private val onMicClick: () -> Unit, private val binding: ItemFeedButtonsBinding = ItemFeedButtonsBinding.inflate( LayoutInflater.from(parent.context), parent, false ) )</ID>
+    <ID>LongParameterList:EditPlaylistViewModel.kt$EditPlaylistViewModel$( extensionLoader: ExtensionLoader, private val app: App, private val extensionId: String, private val initial: Playlist, private val loaded: Boolean, private val selectedTab: String?, private val removeIndex: Int, )</ID>
+    <ID>LongParameterList:FeedClickListener.kt$FeedClickListener$( view: View?, extensionId: String?, feedId: String?, title: String?, subtitle: String?, feed: Feed&lt;Shelf>? )</ID>
+    <ID>LongParameterList:FeedClickListener.kt$FeedClickListener$( view: View?, extensionId: String?, item: EchoMediaItem?, context: EchoMediaItem?, tabId: String?, index: Int )</ID>
+    <ID>LongParameterList:FeedType.kt$FeedType.Companion$( feedId: String, extId: String, context: EchoMediaItem?, tabId: String?, noVideos: Boolean = false, start: Long = 0, isTv: Boolean = false, )</ID>
+    <ID>LongParameterList:FeedViewModel.kt$FeedViewModel$( id: String, buttons: Feed.Buttons = Feed.Buttons(), noVideos: Boolean = false, vararg extraLoadFlow: Flow&lt;*>, cached: suspend ExtensionLoader.() -> FeedData.State&lt;Feed&lt;Shelf>>? = { null }, loader: suspend ExtensionLoader.() -> FeedData.State&lt;Feed&lt;Shelf>>? )</ID>
+    <ID>LongParameterList:FragmentUtils.kt$FragmentUtils$( cont: Int, manager: FragmentManager, viewModel: UiViewModel, view: View? = null, bundle: Bundle? = null, caller: Fragment? = null, )</ID>
+    <ID>LongParameterList:ImageUtils.kt$ImageUtils$( view: T, thumbnail: Drawable? = null, error: Int? = null, // Invoked ONLY for a real terminal outcome from Coil (success or error), never for the // synchronous thumbnail pre-set below. `onDrawable` cannot tell the two apart — it fires for // both — which is exactly how a caller ends up recording "this load completed" on the strength // of a cached thumbnail or a placeholder. A caller that keeps completion state (PlayerTrackAdapter // gates its cover block on lastBoundMediaId and its retry on coverDrawable) must key that state // off THIS callback. Null for every other call site, which keeps them byte-identical. // Note a cancelled request invokes NEITHER: RealImageLoader.execute passes request.target on the // success and error branches but not on the CancellationException branch, so a cancelled load // leaves the view untouched and no bookkeeping is recorded — which is the correct outcome, since // the caller's retry path must stay armed. onDelivered: (T.(Drawable?) -> Unit)? = null, // TRACE (2026-08-29, temporary). Reports the Coil DataSource of a terminal outcome - // MEMORY_CACHE / MEMORY / DISK / NETWORK, or "ERROR". Null at every other call site, so the // request built below is byte-identical for them: `listener` is only attached when non-null. // Exists because the target lambdas receive an Image, not an ImageResult, so the DataSource is // otherwise unreachable from a caller. REMOVE WITH THE TRACE. // ⚠️ CONDITION UNRESOLVED (2026-09-12), NOT "waiting on something specific". Reviewed in // the temporary-logging inventory and left in: NOBODY CURRENTLY KNOWS whether this trace is still // wanted - the investigation it belonged to is not identified in the record, and no capture this // month has used it. Recorded as unresolved rather than as KEEP, because implying it waits on a // named condition would be false. Whoever next touches image loading should decide it; until then // it is neither safe to strip blind nor legitimately "pending". // Applies equally to warmIssued / warmDone below. onSource: ((String) -> Unit)? = null, onDrawable: T.(Drawable?) -> Unit )</ID>
+    <ID>LongParameterList:MediaItemUtils.kt$MediaItemUtils$( bundle: Bundle, downloads: List&lt;Downloader.Info>, context: EchoMediaItem? = bundle.getSerialized&lt;EchoMediaItem>("context")?.getOrNull(), loaded: Boolean = bundle.getBoolean("loaded"), app: App, serverIndex: Int? = null, backgroundIndex: Int? = null, subtitleIndex: Int? = null, )</ID>
+    <ID>LongParameterList:MediaMoreBottomSheet.kt$MediaMoreBottomSheet.Companion$( host: Fragment, manager: FragmentManager = host.parentFragmentManager, contId: Int, extensionId: String, item: EchoMediaItem, loaded: Boolean, fromPlayer: Boolean = false, context: EchoMediaItem? = null, tabId: String? = null, pos: Int? = null, fromHistory: Boolean = false, )</ID>
+    <ID>LongParameterList:MediaState.kt$MediaState.Loaded$( override val extensionId: String, override val item: T, val isFollowed: Boolean?, val followers: Long?, val isSaved: Boolean?, val isLiked: Boolean?, val isHidden: Boolean?, val showRadio: Boolean, val showShare: Boolean )</ID>
+    <ID>LongParameterList:MediaStoreUtils.kt$MediaStoreUtils$( limitValue: Int, folderFilter: Set&lt;String>, blacklistKeywords: List&lt;String>, context: Context, songs: MutableList&lt;Track>, foundPlaylistContent: Boolean, idMap: MutableMap&lt;Long, Track>?, settings: Settings, block: (Track) -> Unit, )</ID>
+    <ID>LongParameterList:MediaStoreUtils.kt$MediaStoreUtils.LibraryStoreClass$( val songList: MutableList&lt;Track>, val albumList: MutableList&lt;MAlbum>, val artistMap: MutableMap&lt;Long?, MArtist>, val genreList: MutableList&lt;Genre>, val dateList: MutableList&lt;Date>, val playlistList: MutableList&lt;MPlaylist>, val likedPlaylist: MPlaylist?, val folderStructure: FileNode, val shallowFolder: FileNode, val folders: Set&lt;String>, )</ID>
+    <ID>LongParameterList:MediaViewModel.kt$MediaViewModel$( extensionLoader: ExtensionLoader, downloader: Downloader, val app: App, loadFeeds: Boolean, val extensionId: String, val item: EchoMediaItem, val loaded: Boolean, )</ID>
+    <ID>LongParameterList:PlayerCallback.kt$PlayerCallback$( override val app: App, override val scope: CoroutineScope, override val throwableFlow: MutableSharedFlow&lt;Throwable>, private val extensions: ExtensionLoader, private val state: PlayerState, override val downloadFlow: StateFlow&lt;List&lt;Downloader.Info>>, private val histRepo: HistoryRepository, )</ID>
+    <ID>LongParameterList:PlayerCallback.kt$PlayerCallback$( player: Player, args: Bundle, command: String, site: String, stampKind: String, stampNote: String, insert: Player.(List&lt;MediaItem>) -> Unit, )</ID>
+    <ID>LongParameterList:PlayerEventListener.kt$PlayerEventListener$( private val context: Context, private val scope: CoroutineScope, private val session: MediaLibrarySession, private val currentFlow: MutableStateFlow&lt;PlayerState.Current?>, private val extensions: ExtensionLoader, private val throwableFlow: MutableSharedFlow&lt;Throwable>, private val fullQueueFlow: MutableStateFlow&lt;List&lt;MediaItem>>, private val isAndroidAutoConnected: () -> Boolean = { false }, private val requestAudioFocus: () -> Unit = {}, // Live PlayerState.activeLoadCount (>0 ⇒ a stream resolution is in flight). Wired from // PlayerService where PlayerState is in scope; this listener is not given PlayerState directly. private val activeLoadCount: () -> Int = { 0 }, // Live PlayerState.loadEpisodeStartMs (epoch ms of the 0 -> 1 edge, 0 when nothing is // outstanding). Wired from PlayerService alongside activeLoadCount. PROBE - remove with // stuck_detail's loadAge field. private val loadEpisodeStartMs: () -> Long = { 0L }, // Invoked when the timeline becomes non-empty (a queue was applied, from any source) — the success // clear for PlayerState.resumptionApplying. Fires on the app looper (Main), preserving that invariant. private val onQueueApplied: () -> Unit = {}, // Returns-and-clears PlayerState.pendingRestoreSeek (the cold-start re-seek latch). Wired from // PlayerService like onQueueApplied; this listener is not given PlayerState directly. Returns null once // consumed, so it fires at most once per cold restore. private val consumeRestoreSeek: () -> PlayerState.RestoreSeek? = { null }, // Non-consuming PEEK at PlayerState.pendingRestoreSeek — true iff the cold-start re-seek latch is armed. // Never clears it (unlike consumeRestoreSeek), so it can gate the saveCurrentPos 0-write below WITHOUT // stealing the latch the STATE_READY re-seek depends on. Wired from PlayerService like the others; fires // on the app looper (Main). A latch is armed only when the restored position was > 0, so "armed" means // "we restored to a known non-zero position that the placeholder timeline hasn't resolved yet" — exactly // the window in which a currentPosition of 0 is spurious and must never overwrite the good saved value. private val isRestoreSeekArmed: () -> Boolean = { false }, private val healthMonitor: HealthMonitor? = null, )</ID>
+    <ID>LongParameterList:PlayerRadio.kt$PlayerRadio$( private val app: App, private val scope: CoroutineScope, private val player: Player, private val throwFlow: MutableSharedFlow&lt;Throwable>, private val stateFlow: MutableStateFlow&lt;PlayerState.Radio>, private val extensionList: StateFlow&lt;List&lt;MusicExtension>>, private val downloadFlow: StateFlow&lt;List&lt;Downloader.Info>> )</ID>
+    <ID>LongParameterList:PlayerRadio.kt$PlayerRadio.Companion$( player: Player, downloadFlow: StateFlow&lt;List&lt;Downloader.Info>>, app: App, entries: List&lt;Pair&lt;String, Track>>, context: EchoMediaItem, // The queue this work was started against - see the ownership check below. epoch: Long, // Which append site this is, for the log line at the bottom. Required, not defaulted: a new // caller must name itself, because an untagged append is exactly what made the 2026-09-11 // duplicate hunt undecidable. // ⚠⚠ THE LAST TWO ARE PASSED BY NAME AT ALL FOUR CALL SITES, DELIBERATELY. This // function takes six leading positional parameters, and on 2026-09-11 adding `source` // between epoch and seedKeys silently slid every caller's seedKeys argument into the // source slot - four identical "Set&lt;String> where String expected" errors that said // nothing about the actual cause. Naming the trailing arguments makes a future insertion // here a compile error at the DECLARATION rather than a shifted meaning at the callers. source: String, // Every seed this station was generated from. Excluded unconditionally, at any distance - // see the note at stationSeeds for why this is NOT the same question as the window below. seedKeys: Set&lt;String> = emptySet(), )</ID>
+    <ID>LongParameterList:PlayerRadio.kt$PlayerRadio.Companion$( player: Player, downloadFlow: StateFlow&lt;List&lt;Downloader.Info>>, app: App, extension: Extension&lt;*>, seed: Track, failure: Throwable, // The context loadPlaylist was generating FROM. Needed for the stamp - see the note at `context` // below; passing it is what keeps a live station's identity from being overwritten. itemContext: EchoMediaItem?, )</ID>
+    <ID>LongParameterList:PlayerRadio.kt$PlayerRadio.Companion$( player: Player, downloadFlow: StateFlow&lt;List&lt;Downloader.Info>>, app: App, stateFlow: MutableStateFlow&lt;PlayerState.Radio>, loaded: PlayerState.Radio.Loaded, // The extension that owns the PLAYING item, for the endless-queue fallback's catalogue search. // Nullable with a default so a call site that cannot cheaply resolve it still compiles and // simply does not get the fallback — rather than forcing a resolution that could be wrong. extension: Extension&lt;*>? = null, // ⚠⚠ THE CALLER'S NAME, NOT THIS FUNCTION'S. Tagged "station_page" by function until // 2026-09-11, which was a level too coarse to be useful: play() is called by loadPlaylist, // topUpQueue, startRadio, PlayerCallback.radio AND PlayerCallback.trackRadio, so the append // line was identical whichever generated the station - and telling those apart was exactly the // question two device captures could not answer. A log that cannot distinguish its own callers // is not instrumentation, it is decoration. source: String = "station_page", )</ID>
+    <ID>LongParameterList:PlayerViewModel.kt$PlayerViewModel$( val app: App, val playerState: PlayerState, val settings: SharedPreferences, val cache: SimpleCache, val extensions: ExtensionLoader, val historyRepository: HistoryRepository, downloader: Downloader, fullQueueFlow: MutableStateFlow&lt;List&lt;MediaItem>>, )</ID>
+    <ID>LongParameterList:QualitySelectionBottomSheet.kt$QualitySelectionBottomSheet$( list: List&lt;T>, textView: TextView, chipGroup: ChipGroup, selected: Int?, onClick: Chip.(T) -> Unit, text: (T) -> String, )</ID>
+    <ID>LongParameterList:StreamableMediaSource.kt$StreamableMediaSource$( private var mediaItem: MediaItem, private val app: App, private val scope: CoroutineScope, private val state: PlayerState, private val loader: StreamableLoader, private val cacheFactories: Factories, private val factories: Factories, private val changeFlow: MutableSharedFlow&lt;Pair&lt;MediaItem, MediaItem>>, )</ID>
+    <ID>LongParameterList:StreamableMediaSource.kt$StreamableMediaSource.Factory$( private val app: App, private val scope: CoroutineScope, private val state: PlayerState, extensions: ExtensionLoader, cache: SimpleCache, downloadFlow: StateFlow&lt;List&lt;Downloader.Info>>, private val changeFlow: MutableSharedFlow&lt;Pair&lt;MediaItem, MediaItem>>, healthMonitor: HealthMonitor, )</ID>
+    <ID>LongParameterList:StreamableResolver.kt$StreamableResolver.Companion$( uri: Uri? = null, uriPositionOffset: Long? = null, httpMethod: Int? = null, httpBody: ByteArray? = null, httpRequestHeaders: Map&lt;String, String>? = null, position: Long? = null, length: Long? = null, key: String? = null, flags: Int? = null, customData: Any? = null, )</ID>
+    <ID>LongParameterList:SwipeToQueue.kt$SwipeToQueue$( mediaIds: List&lt;String>, flagged: List&lt;Boolean>, trackIds: List&lt;String?>, currentMediaId: String?, targetTrackId: String?, takeLast: Boolean )</ID>
+    <ID>LongParameterList:WebViewUtils.kt$WebViewUtils$( scope: CoroutineScope, progress: LinearProgressIndicator, callback: OnBackPressedCallback, target: WebViewRequest&lt;T>, skipTimeout: Boolean, onComplete: suspend (Result&lt;T>?) -> Unit, )</ID>
+    <ID>LoopWithTooManyJumpStatements:MediaStoreUtils.kt$MediaStoreUtils$while</ID>
+    <ID>LoopWithTooManyJumpStatements:PlayerRadio.kt$PlayerRadio$for</ID>
+    <ID>LoopWithTooManyJumpStatements:PlayerRadio.kt$PlayerRadio$while</ID>
+    <ID>LoopWithTooManyJumpStatements:RadioFallback.kt$RadioFallback$for</ID>
+    <ID>MagicNumber:AddViewModel.kt$AddViewModel$3</ID>
+    <ID>MagicNumber:AndroidAutoCallback.kt$AndroidAutoCallback$10_000</ID>
+    <ID>MagicNumber:AndroidAutoCallback.kt$AndroidAutoCallback$15_000L</ID>
+    <ID>MagicNumber:AndroidAutoCallback.kt$AndroidAutoCallback$25</ID>
+    <ID>MagicNumber:AndroidAutoCallback.kt$AndroidAutoCallback$300</ID>
+    <ID>MagicNumber:AndroidAutoCallback.kt$AndroidAutoCallback$30_000L</ID>
+    <ID>MagicNumber:AndroidAutoCallback.kt$AndroidAutoCallback.Companion$100</ID>
+    <ID>MagicNumber:AndroidAutoCallback.kt$AndroidAutoCallback.Companion$150</ID>
+    <ID>MagicNumber:AndroidAutoCallback.kt$AndroidAutoCallback.Companion$3000</ID>
+    <ID>MagicNumber:AndroidAutoCallback.kt$AndroidAutoCallback.Companion$8</ID>
+    <ID>MagicNumber:AndroidAutoCallback.kt$AndroidAutoCallback.Companion$96</ID>
+    <ID>MagicNumber:AndroidAutoCallback.kt$AndroidAutoCallback.Companion.&lt;no name provided>$0.75f</ID>
+    <ID>MagicNumber:AndroidAutoCallback.kt$AndroidAutoCallback.Companion.&lt;no name provided>$16</ID>
+    <ID>MagicNumber:AnimationUtils.kt$AnimationUtils$0.5f</ID>
+    <ID>MagicNumber:AnimationUtils.kt$AnimationUtils$1.5f</ID>
+    <ID>MagicNumber:AnimationUtils.kt$AnimationUtils$100</ID>
+    <ID>MagicNumber:AnimationUtils.kt$AnimationUtils$350</ID>
+    <ID>MagicNumber:AnimationUtils.kt$AnimationUtils$5f</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$0x000000ff</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$0x0000ff00</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$0x00ff</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$0x00ff0000</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$0xFF</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$0xFF00</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$0xff00</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$16</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$24</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$3</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$4</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$5</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$6</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$7</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$8</ID>
+    <ID>MagicNumber:ApkLinkParser.kt$ApkLinkParser.CompressedXmlParser$9</ID>
+    <ID>MagicNumber:App.kt$App$1024</ID>
+    <ID>MagicNumber:App.kt$App$50</ID>
+    <ID>MagicNumber:App.kt$App$60_000L</ID>
+    <ID>MagicNumber:AppShortcuts.kt$AppShortcuts$0.05f</ID>
+    <ID>MagicNumber:AppUpdater.kt$AppUpdater$1000</ID>
+    <ID>MagicNumber:AppUpdater.kt$AppUpdater$304</ID>
+    <ID>MagicNumber:AppUpdater.kt$AppUpdater$403</ID>
+    <ID>MagicNumber:AppUpdater.kt$AppUpdater$404</ID>
+    <ID>MagicNumber:AppUpdater.kt$AppUpdater$429</ID>
+    <ID>MagicNumber:AppUpdater.kt$AppUpdater$7</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$0.4</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$0.5</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$1.25</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$1000L</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$15f</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$16.0</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$20.0</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$27.0</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$3</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$32767</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$32767.0</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$32768</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$32768.0</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$32768f</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$4.5f</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$5.0</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$5000</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$65535</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$65536</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$8.0</ID>
+    <ID>MagicNumber:AudioEffectsProcessor.kt$AudioEffectsProcessor$9.0</ID>
+    <ID>MagicNumber:BaseTask.kt$BaseTask$500L</ID>
+    <ID>MagicNumber:BaseWidget.kt$BaseWidget.Companion$0.5f</ID>
+    <ID>MagicNumber:BaseWidget.kt$BaseWidget.Companion$256</ID>
+    <ID>MagicNumber:BlurTransformation.kt$BlurTransformation.Companion$25.0</ID>
+    <ID>MagicNumber:ButtonsAdapter.kt$ButtonsAdapter.ViewHolder$18f</ID>
+    <ID>MagicNumber:Cached.kt$Cached$47</ID>
+    <ID>MagicNumber:Cached.kt$Cached$96</ID>
+    <ID>MagicNumber:CategoryViewHolder.kt$CategoryViewHolder.Companion$0.25</ID>
+    <ID>MagicNumber:CategoryViewHolder.kt$CategoryViewHolder.Companion$0.2f</ID>
+    <ID>MagicNumber:CategoryViewHolder.kt$CategoryViewHolder.Companion$0.5f</ID>
+    <ID>MagicNumber:CategoryViewHolder.kt$CategoryViewHolder.Companion$0.9f</ID>
+    <ID>MagicNumber:CategoryViewHolder.kt$CategoryViewHolder.Companion$100</ID>
+    <ID>MagicNumber:CategoryViewHolder.kt$CategoryViewHolder.Companion$3</ID>
+    <ID>MagicNumber:CategoryViewHolder.kt$CategoryViewHolder.Companion$35f</ID>
+    <ID>MagicNumber:ColorListPreference.kt$ColorListPreference$0.66f</ID>
+    <ID>MagicNumber:ColorPickerDialog.kt$ColorPickerDialog$256</ID>
+    <ID>MagicNumber:Convertors.kt$9</ID>
+    <ID>MagicNumber:CrashKeys.kt$CrashKeys$1000L</ID>
+    <ID>MagicNumber:CrashKeys.kt$CrashKeys$1024</ID>
+    <ID>MagicNumber:DownloadFragment.kt$DownloadFragment$20</ID>
+    <ID>MagicNumber:DownloadFragment.kt$DownloadFragment$72</ID>
+    <ID>MagicNumber:DownloadFragment.kt$DownloadFragment$8</ID>
+    <ID>MagicNumber:DownloadWorker.kt$DownloadWorker$100</ID>
+    <ID>MagicNumber:DownloadsAdapter.kt$DownloadsAdapter.Companion$100</ID>
+    <ID>MagicNumber:DownloadsAdapter.kt$DownloadsAdapter.Companion$1024</ID>
+    <ID>MagicNumber:DownloadsAdapter.kt$DownloadsAdapter.Companion$500</ID>
+    <ID>MagicNumber:EditPlaylistFragment.kt$EditPlaylistFragment$96</ID>
+    <ID>MagicNumber:EditPlaylistViewModel.kt$EditPlaylistViewModel$3</ID>
+    <ID>MagicNumber:EffectsListener.kt$EffectsListener$0.1f</ID>
+    <ID>MagicNumber:EffectsListener.kt$EffectsListener.Effects$10</ID>
+    <ID>MagicNumber:EffectsListener.kt$EffectsListener.Effects$1600</ID>
+    <ID>MagicNumber:EffectsListener.kt$EffectsListener.Effects$3</ID>
+    <ID>MagicNumber:EmptyAdapter.kt$EmptyAdapter.ViewHolder$3000</ID>
+    <ID>MagicNumber:ExceptionUtils.kt$ExceptionUtils$1024</ID>
+    <ID>MagicNumber:ExtensionsViewModel.kt$ExtensionsViewModel$1000</ID>
+    <ID>MagicNumber:ExtensionsViewModel.kt$ExtensionsViewModel$24</ID>
+    <ID>MagicNumber:ExtensionsViewModel.kt$ExtensionsViewModel$60</ID>
+    <ID>MagicNumber:ExtensionsViewModel.kt$ExtensionsViewModel$60_000L</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.Companion.&lt;no name provided>$35</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.LoadingViewHolder$500</ID>
+    <ID>MagicNumber:FeedData.kt$FeedData$100L</ID>
+    <ID>MagicNumber:FeedFragment.kt$FeedFragment.Actual$16</ID>
+    <ID>MagicNumber:FeedFragment.kt$FeedFragment.Actual$20</ID>
+    <ID>MagicNumber:FeedFragment.kt$FeedFragment.Actual$8</ID>
+    <ID>MagicNumber:FeedLoadingAdapter.kt$FeedLoadingAdapter$3</ID>
+    <ID>MagicNumber:FeedType.kt$FeedType.Companion$6</ID>
+    <ID>MagicNumber:FormatUtils.kt$FormatUtils$1000</ID>
+    <ID>MagicNumber:GestureListener.kt$GestureListener.Companion.&lt;no name provided>$1000</ID>
+    <ID>MagicNumber:GradientDrawable.kt$GradientDrawable$128</ID>
+    <ID>MagicNumber:GradientDrawable.kt$GradientDrawable.&lt;no name provided>$0.4f</ID>
+    <ID>MagicNumber:GradientDrawable.kt$GradientDrawable.&lt;no name provided>$0.8f</ID>
+    <ID>MagicNumber:GradientDrawable.kt$GradientDrawable.&lt;no name provided>$153</ID>
+    <ID>MagicNumber:GradientDrawable.kt$GradientDrawable.&lt;no name provided>$242</ID>
+    <ID>MagicNumber:GradientDrawable.kt$GradientDrawable.&lt;no name provided>$84</ID>
+    <ID>MagicNumber:GridAdapter.kt$GridAdapter.Companion$2.5f</ID>
+    <ID>MagicNumber:HistoryAdapter.kt$HistoryAdapter$7</ID>
+    <ID>MagicNumber:HistoryDatabase.kt$HistoryDatabase.Companion.&lt;no name provided>$3</ID>
+    <ID>MagicNumber:HistoryDatabase.kt$HistoryDatabase.Companion.&lt;no name provided>$4</ID>
+    <ID>MagicNumber:HistoryDatabase.kt$HistoryDatabase.Companion.&lt;no name provided>$5</ID>
+    <ID>MagicNumber:HistoryViewModel.kt$HistoryViewModel$30</ID>
+    <ID>MagicNumber:HistoryViewModel.kt$HistoryViewModel$500</ID>
+    <ID>MagicNumber:HistoryViewModel.kt$HistoryViewModel$5000</ID>
+    <ID>MagicNumber:HistoryViewModel.kt$HistoryViewModel$7</ID>
+    <ID>MagicNumber:HorizontalListViewHolder.kt$HorizontalListViewHolder$20</ID>
+    <ID>MagicNumber:HorizontalListViewHolder.kt$HorizontalListViewHolder$3</ID>
+    <ID>MagicNumber:HorizontalListViewHolder.kt$HorizontalListViewHolder$8</ID>
+    <ID>MagicNumber:KenBurnsImageView.kt$KenBurnsImageView$0.1f</ID>
+    <ID>MagicNumber:KenBurnsImageView.kt$KenBurnsImageView$1.1f</ID>
+    <ID>MagicNumber:KenBurnsImageView.kt$KenBurnsImageView$10_000L</ID>
+    <ID>MagicNumber:LoadingTask.kt$LoadingTask$3</ID>
+    <ID>MagicNumber:LoadingTask.kt$LoadingTask$3L</ID>
+    <ID>MagicNumber:LoginFragment.kt$LoginFragment$2000</ID>
+    <ID>MagicNumber:LoginFragment.kt$LoginFragment.SmartLogin$1000</ID>
+    <ID>MagicNumber:LoginFragment.kt$LoginFragment.SmartLogin$200</ID>
+    <ID>MagicNumber:LoginFragment.kt$LoginFragment.SmartLogin$3000L</ID>
+    <ID>MagicNumber:LoginFragment.kt$LoginFragment.SmartLogin$512</ID>
+    <ID>MagicNumber:LoginFragment.kt$LoginFragment.SmartLogin$6</ID>
+    <ID>MagicNumber:LoginFragment.kt$LoginFragment.SmartLogin$600</ID>
+    <ID>MagicNumber:LoginFragment.kt$LoginFragment.SmartLogin$8000</ID>
+    <ID>MagicNumber:LyricAdapter.kt$LyricAdapter$0.5f</ID>
+    <ID>MagicNumber:LyricsFragment.kt$LyricsFragment$0.5f</ID>
+    <ID>MagicNumber:LyricsFragment.kt$LyricsFragment$2000</ID>
+    <ID>MagicNumber:LyricsFragment.kt$LyricsFragment.&lt;no name provided>$3500</ID>
+    <ID>MagicNumber:LyricsFragment.kt$LyricsFragment.CenterSmoothScroller$0.30f</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$1000</ID>
+    <ID>MagicNumber:MainApplication.kt$MainApplication$0.15</ID>
+    <ID>MagicNumber:MainApplication.kt$MainApplication$100</ID>
+    <ID>MagicNumber:MainApplication.kt$MainApplication$1024</ID>
+    <ID>MagicNumber:MainFragment.kt$MainFragment$3</ID>
+    <ID>MagicNumber:MainFragment.kt$MainFragment.Companion$0.5f</ID>
+    <ID>MagicNumber:MainFragment.kt$MainFragment.Companion$20</ID>
+    <ID>MagicNumber:MainFragment.kt$MainFragment.Companion$27</ID>
+    <ID>MagicNumber:MainFragment.kt$MainFragment.Companion$4</ID>
+    <ID>MagicNumber:MainFragment.kt$MainFragment.Companion$48</ID>
+    <ID>MagicNumber:ManageExtensionsFragment.kt$ManageExtensionsFragment$104</ID>
+    <ID>MagicNumber:MediaDetailsFragment.kt$MediaDetailsFragment$16</ID>
+    <ID>MagicNumber:MediaDetailsFragment.kt$MediaDetailsFragment$20</ID>
+    <ID>MagicNumber:MediaHeaderAdapter.kt$MediaHeaderAdapter.Success$56</ID>
+    <ID>MagicNumber:MediaSessionServiceListener.kt$MediaSessionServiceListener$26</ID>
+    <ID>MagicNumber:MediaSessionServiceListener.kt$MediaSessionServiceListener$33</ID>
+    <ID>MagicNumber:MediaStoreUtils.kt$MediaStoreUtils$10</ID>
+    <ID>MagicNumber:MediaStoreUtils.kt$MediaStoreUtils$1000</ID>
+    <ID>MagicNumber:MediaStoreUtils.kt$MediaStoreUtils$1000L</ID>
+    <ID>MagicNumber:MediaStoreUtils.kt$MediaStoreUtils$12</ID>
+    <ID>MagicNumber:MediaStoreUtils.kt$MediaStoreUtils$16</ID>
+    <ID>MagicNumber:MediaStoreUtils.kt$MediaStoreUtils$20</ID>
+    <ID>MagicNumber:MediaStoreUtils.kt$MediaStoreUtils$24</ID>
+    <ID>MagicNumber:MediaStoreUtils.kt$MediaStoreUtils$3</ID>
+    <ID>MagicNumber:MediaStoreUtils.kt$MediaStoreUtils$4</ID>
+    <ID>MagicNumber:MediaStoreUtils.kt$MediaStoreUtils$5</ID>
+    <ID>MagicNumber:MediaStoreUtils.kt$MediaStoreUtils$8</ID>
+    <ID>MagicNumber:OfflineExtension.kt$OfflineExtension$10</ID>
+    <ID>MagicNumber:OfflineExtension.kt$OfflineExtension$120</ID>
+    <ID>MagicNumber:OfflineExtension.kt$OfflineExtension$20</ID>
+    <ID>MagicNumber:OfflineExtension.kt$OfflineExtension$25</ID>
+    <ID>MagicNumber:OfflineExtension.kt$OfflineExtension$4</ID>
+    <ID>MagicNumber:OfflineExtension.kt$OfflineExtension$9</ID>
+    <ID>MagicNumber:PixelFastScrollViewHelper.kt$PixelFastScrollViewHelper$24</ID>
+    <ID>MagicNumber:PlayerCallback.kt$PlayerCallback$720</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$10</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$1000L</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$1024</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$3</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$300</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$400</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$401</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$403</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$404</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$499</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$50</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$500</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$599</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$60</ID>
+    <ID>MagicNumber:PlayerEventListener.kt$PlayerEventListener$64</ID>
+    <ID>MagicNumber:PlayerFragment.kt$PlayerFragment$0.5f</ID>
+    <ID>MagicNumber:PlayerFragment.kt$PlayerFragment$0.75f</ID>
+    <ID>MagicNumber:PlayerFragment.kt$PlayerFragment$10_000</ID>
+    <ID>MagicNumber:PlayerFragment.kt$PlayerFragment$4</ID>
+    <ID>MagicNumber:PlayerFragment.kt$PlayerFragment$64</ID>
+    <ID>MagicNumber:PlayerFragment.kt$PlayerFragment$8f</ID>
+    <ID>MagicNumber:PlayerFragment.kt$PlayerFragment.&lt;no name provided>$10000</ID>
+    <ID>MagicNumber:PlayerRadio.kt$PlayerRadio$1_000_000</ID>
+    <ID>MagicNumber:PlayerService.kt$PlayerService$1000</ID>
+    <ID>MagicNumber:PlayerService.kt$PlayerService$500</ID>
+    <ID>MagicNumber:PlayerService.kt$PlayerService$60_000</ID>
+    <ID>MagicNumber:PlayerService.kt$PlayerService.Companion$1024</ID>
+    <ID>MagicNumber:PlayerService.kt$PlayerService.Companion$1024L</ID>
+    <ID>MagicNumber:PlayerService.kt$PlayerService.Companion$250</ID>
+    <ID>MagicNumber:PlayerTrackAdapter.kt$PlayerTrackAdapter.ViewHolder$0.5f</ID>
+    <ID>MagicNumber:PlayerTrackAdapter.kt$PlayerTrackAdapter.ViewHolder$24</ID>
+    <ID>MagicNumber:PlayerTrackAdapter.kt$PlayerTrackAdapter.ViewHolder$64</ID>
+    <ID>MagicNumber:PlayerTvFragment.kt$PlayerTvFragment$10_000</ID>
+    <ID>MagicNumber:PlayerTvFragment.kt$PlayerTvFragment$24f</ID>
+    <ID>MagicNumber:PlayerUiListener.kt$PlayerUiListener$0.2f</ID>
+    <ID>MagicNumber:PlayerUiListener.kt$PlayerUiListener$500L</ID>
+    <ID>MagicNumber:QueueAdapter.kt$QueueAdapter$0.5f</ID>
+    <ID>MagicNumber:QueueFragment.kt$QueueFragment$3</ID>
+    <ID>MagicNumber:RadioFallback.kt$RadioFallback$3</ID>
+    <ID>MagicNumber:RadioFallback.kt$RadioFallback$4</ID>
+    <ID>MagicNumber:RenderersFactory.kt$RenderersFactory$20_000f</ID>
+    <ID>MagicNumber:RenderersFactory.kt$RenderersFactory$256</ID>
+    <ID>MagicNumber:RenderersFactory.kt$RenderersFactory$2_000_000</ID>
+    <ID>MagicNumber:RenderersFactory.kt$RenderersFactory$2_000_000f</ID>
+    <ID>MagicNumber:ResumptionUtils.kt$ResumptionUtils$10</ID>
+    <ID>MagicNumber:ResumptionUtils.kt$ResumptionUtils$1000L</ID>
+    <ID>MagicNumber:ResumptionUtils.kt$ResumptionUtils$24</ID>
+    <ID>MagicNumber:ResumptionUtils.kt$ResumptionUtils$2_000</ID>
+    <ID>MagicNumber:ResumptionUtils.kt$ResumptionUtils$60</ID>
+    <ID>MagicNumber:ResumptionUtils.kt$ResumptionUtils$60_000L</ID>
+    <ID>MagicNumber:ResumptionUtils.kt$ResumptionUtils$90</ID>
+    <ID>MagicNumber:RulerAdapter.kt$RulerAdapter$.5f</ID>
+    <ID>MagicNumber:SearchViewModel.kt$SearchViewModel.Companion$5</ID>
+    <ID>MagicNumber:SettingsBottomSheet.kt$SettingsBottomSheet$5</ID>
+    <ID>MagicNumber:SettingsPlayerFragment.kt$SettingsPlayerFragment.AudioPreference$1000</ID>
+    <ID>MagicNumber:SettingsPlayerFragment.kt$SettingsPlayerFragment.AudioPreference$200</ID>
+    <ID>MagicNumber:SettingsPlayerFragment.kt$SettingsPlayerFragment.AudioPreference$250</ID>
+    <ID>MagicNumber:ShaUtils.kt$ShaUtils$8192</ID>
+    <ID>MagicNumber:ShelfViewHolder.kt$ShelfViewHolder.ThreeTracks$3</ID>
+    <ID>MagicNumber:SleepTimerBottomSheet.kt$SleepTimerBottomSheet$1000</ID>
+    <ID>MagicNumber:SleepTimerBottomSheet.kt$SleepTimerBottomSheet$120</ID>
+    <ID>MagicNumber:SleepTimerBottomSheet.kt$SleepTimerBottomSheet$1440</ID>
+    <ID>MagicNumber:SleepTimerBottomSheet.kt$SleepTimerBottomSheet$15</ID>
+    <ID>MagicNumber:SleepTimerBottomSheet.kt$SleepTimerBottomSheet$30</ID>
+    <ID>MagicNumber:SleepTimerBottomSheet.kt$SleepTimerBottomSheet$45</ID>
+    <ID>MagicNumber:SleepTimerBottomSheet.kt$SleepTimerBottomSheet$5</ID>
+    <ID>MagicNumber:SleepTimerBottomSheet.kt$SleepTimerBottomSheet$60</ID>
+    <ID>MagicNumber:SleepTimerBottomSheet.kt$SleepTimerBottomSheet$60L</ID>
+    <ID>MagicNumber:SleepTimerBottomSheet.kt$SleepTimerBottomSheet.&lt;no name provided>$1000</ID>
+    <ID>MagicNumber:SleepTimerBottomSheet.kt$SleepTimerBottomSheet.&lt;no name provided>$60L</ID>
+    <ID>MagicNumber:SleepTimerBottomSheet.kt$SleepTimerBottomSheet.Companion$1000</ID>
+    <ID>MagicNumber:SleepTimerBottomSheet.kt$SleepTimerBottomSheet.Companion$60</ID>
+    <ID>MagicNumber:SnackBarHandler.kt$SnackBarHandler$16</ID>
+    <ID>MagicNumber:SnackBarHandler.kt$SnackBarHandler$60_000L</ID>
+    <ID>MagicNumber:StreamableLoader.kt$StreamableLoader$1000L</ID>
+    <ID>MagicNumber:StreamableLoader.kt$StreamableLoader$30_000</ID>
+    <ID>MagicNumber:StreamableLoader.kt$StreamableLoader$60</ID>
+    <ID>MagicNumber:TabsAdapter.kt$TabsAdapter$20f</ID>
+    <ID>MagicNumber:TrackingListener.kt$TrackingListener$30_000L</ID>
+    <ID>MagicNumber:TrackingListener.kt$TrackingListener$500</ID>
+    <ID>MagicNumber:TvPairingFragment.kt$TvPairingFragment$10_000</ID>
+    <ID>MagicNumber:TvPairingFragment.kt$TvPairingFragment$200</ID>
+    <ID>MagicNumber:TvPairingFragment.kt$TvPairingFragment$6</ID>
+    <ID>MagicNumber:UiUtils.kt$UiUtils$1000</ID>
+    <ID>MagicNumber:UiUtils.kt$UiUtils$191</ID>
+    <ID>MagicNumber:UiUtils.kt$UiUtils$255</ID>
+    <ID>MagicNumber:UiUtils.kt$UiUtils$3600</ID>
+    <ID>MagicNumber:UiUtils.kt$UiUtils$60</ID>
+    <ID>MagicNumber:WidgetHorizontal.kt$WidgetHorizontal$128f</ID>
+    <ID>MagicNumber:WidgetHorizontal.kt$WidgetHorizontal$360f</ID>
+    <ID>MagicNumber:WidgetVertical.kt$WidgetVertical$128f</ID>
+    <ID>MagicNumber:WidgetVertical.kt$WidgetVertical$256f</ID>
+    <ID>MaxLineLength:AddViewModel.kt$AddViewModel$if (body.trimStart().startsWith("&lt;")) throw Exception("URL returned an HTML page, not a valid extension list")</ID>
+    <ID>MaxLineLength:AndroidAutoCallback.kt$AndroidAutoCallback$Log.d("GladixAuto", "extensionWatcher: calling notifyChildrenChanged ROOT count=${extensions.size} (broadcast, no-op while subscribers=0)")</ID>
+    <ID>MaxLineLength:AndroidAutoCallback.kt$AndroidAutoCallback$Log.d("GladixAuto", "extensionWatcher: collected ${extensions.size} extensions: ${extensions.map { it.id }}")</ID>
+    <ID>MaxLineLength:AndroidAutoCallback.kt$AndroidAutoCallback$Log.d("GladixAuto", "onGetChildren ROOT: extensionList.first size=${extensions.size} enabled=${enabled.size}, ids=${enabled.map { it.id }}")</ID>
+    <ID>MaxLineLength:AndroidAutoCallback.kt$AndroidAutoCallback$Log.d("GladixAuto", "onGetLibraryRoot: extensionList.value.size=${extensionList.value.size}, clearing caches, starting watcher")</ID>
+    <ID>MaxLineLength:AndroidAutoCallback.kt$AndroidAutoCallback$Log.d("GladixAuto", "onGetSearchResult: query='$query' page=$page pageSize=$pageSize lastSearchQuery='$lastSearchQuery' cachedResults=${searchResults[cacheKey]?.size ?: "none"}")</ID>
+    <ID>MaxLineLength:AndroidAutoCallback.kt$AndroidAutoCallback$Log.d("GladixAuto", "onGetSearchResult: returning ${allTracks.drop(from).take(pageSize).size} items (total=${allTracks.size}) for query='$query'")</ID>
+    <ID>MaxLineLength:AndroidAutoCallback.kt$AndroidAutoCallback$Log.d("GladixAuto", "onSearch: notifySearchResultChanged (joined) query='$query' count=${tracks.size}")</ID>
+    <ID>MaxLineLength:AndroidAutoCallback.kt$AndroidAutoCallback$Log.d("GladixAuto", "performSearch: error for query='$query' ext=${ext.id}: ${it::class.simpleName}: ${it.message}")</ID>
+    <ID>MaxLineLength:AndroidAutoCallback.kt$AndroidAutoCallback$browsableItem("$ROOT/$extId/$HISTORY", "${extension.name} • ${context.getString(R.string.history)}")</ID>
+    <ID>MaxLineLength:AndroidAutoCallback.kt$AndroidAutoCallback$browsableItem("$ROOT/$extId/$LIBRARY", "${extension.name} • ${context.getString(R.string.library)}")</ID>
+    <ID>MaxLineLength:AndroidAutoCallback.kt$AndroidAutoCallback$browsableItem("$ROOT/$extId/$PLAYLISTS", "${extension.name} • ${context.getString(R.string.playlists)}")</ID>
+    <ID>MaxLineLength:AndroidAutoCallback.kt$AndroidAutoCallback$browsableItem("$ROOT/$extId/$SEARCH", "${extension.name} • ${context.getString(R.string.aa_browse)}")</ID>
+    <ID>MaxLineLength:App.kt$App$// The raw Deferred is PRIVATE so this is the only way in - the rule is structural, not advisory. That Deferred is a single</ID>
+    <ID>MaxLineLength:App.kt$App$withTimeoutOrNull(fileCacheTimeoutMs) { fileCache.await() } ?: throw FileCacheTimeoutException(fileCacheTimeoutMs)</ID>
+    <ID>MaxLineLength:AudioFocusListener.kt$AudioFocusListener$Log.d("GladixAudio", "AUDIOFOCUS_GAIN: playbackState=${player.playbackState} pausedForFocus=$pausedForFocus playWhenReady=${player.playWhenReady}")</ID>
+    <ID>MaxLineLength:AudioFocusListener.kt$AudioFocusListener$pendingCommit = false</ID>
+    <ID>MaxLineLength:ExtensionInfoFragment.kt$ExtensionInfoFragment.ExtensionPreference$if</ID>
+    <ID>MaxLineLength:FeedAdapter.kt$FeedAdapter$fun</ID>
+    <ID>MaxLineLength:HistoryAdapter.kt$HistoryAdapter$playedAt.text = root.context.getString(R.string.history_item_subtitle, listItem.entity.playedAt.toRelativeTime(), listItem.extensionName)</ID>
+    <ID>MaxLineLength:HistoryDao.kt$HistoryDao$@Query("DELETE FROM HistoryEntity WHERE rowid IN (SELECT rowid FROM HistoryEntity ORDER BY playedAt ASC LIMIT MAX(0, (SELECT COUNT(*) FROM HistoryEntity) - 150))")</ID>
+    <ID>MaxLineLength:MediaHeaderAdapter.kt$MediaHeaderAdapter.Success$savedButton.isVisible = state.isSaved != null &amp;&amp; !(state.item is Playlist &amp;&amp; state.item.isEditable) &amp;&amp; !fromPlayer</ID>
+    <ID>MaxLineLength:PlayerCallback.kt$PlayerCallback$Log.d("GladixPlayback", "onPlaybackResumption: skipping, activeLoadCount=${state.activeLoadCount.get()}")</ID>
+    <ID>MaxLineLength:PlayerEventListener.kt$PlayerEventListener$Log.d("GladixPlayback", "Buffering watchdog: retrying $currentMediaId (attempt $retriedWatchdogCount/$maxWatchdogRetries)")</ID>
+    <ID>MaxLineLength:PlayerEventListener.kt$PlayerEventListener$Log.d("GladixPlayback", "Buffering watchdog: retrying $currentMediaId (attempt 1/$maxWatchdogRetries)")</ID>
+    <ID>MaxLineLength:PlayerEventListener.kt$PlayerEventListener$Log.d("GladixPlayback", "STATE_BUFFERING: ${player.currentMediaItem?.mediaId} \"${player.currentMediaItem?.mediaMetadata?.title}\"")</ID>
+    <ID>MaxLineLength:PlayerEventListener.kt$PlayerEventListener$Log.d("GladixPlayback", "onPlayerError: 401 for $currentMediaId, retrying with stop/prepare (fresh TRACK_TOKEN)")</ID>
+    <ID>MaxLineLength:PlayerEventListener.kt$PlayerEventListener$if</ID>
+    <ID>MaxLineLength:PlayerEventListener.kt$PlayerEventListener$val isRetryExhausted = rootCause.message?.contains("not available after retries", ignoreCase = true) == true</ID>
+    <ID>MaxLineLength:PlayerMoreFragment.kt$PlayerMoreFragment$if (current != BottomSheetBehavior.STATE_COLLAPSED &amp;&amp; current != BottomSheetBehavior.STATE_EXPANDED) return@run</ID>
+    <ID>MaxLineLength:PlayerMoreFragment.kt$PlayerMoreFragment$if (group.checkedButtonId != -1) BottomSheetBehavior.STATE_EXPANDED else BottomSheetBehavior.STATE_COLLAPSED</ID>
+    <ID>MaxLineLength:PlayerRadio.kt$PlayerRadio$// extension is explicitly not a goal here. Wiring it is one argument, the same as topUpQueue's Loaded branch.</ID>
+    <ID>MaxLineLength:PlayerViewModel.kt$PlayerViewModel$Log.d("GladixAudio", "setPlaying: isPlaying=$isPlaying playbackState=${it.playbackState} playWhenReady=${it.playWhenReady}")</ID>
+    <ID>MaxLineLength:PrefsUtils.kt$else -> throw IllegalArgumentException("Unsupported type for deserialization: ${value::class.java}")</ID>
+    <ID>MaxLineLength:QueueFragment.kt$QueueFragment.&lt;no name provided>$"libBottomDiff=${(curY + v.height - (recyclerView.height - recyclerView.paddingBottom)).toInt()} "</ID>
+    <ID>MaxLineLength:RawDataSource.kt$RawDataSource$Log.d("GladixPlayback", "RawDataSource.open: invoking InputProvider pos=${dataSpec.position} uri=${dataSpec.uri}")</ID>
+    <ID>MaxLineLength:ResumptionUtils.kt$ResumptionUtils$Log.d("GladixPlayback", "recoverPlaylist: ${items.size} items index=0 (windowed) pos=$rawPos safePos=$safePos duration=$trackDuration")</ID>
+    <ID>MaxLineLength:ResumptionUtils.kt$ResumptionUtils$Log.d("GladixPlayback", "saveQueue: empty — stack: ${Thread.currentThread().stackTrace.take(10).joinToString(" &lt; ") { it.methodName }}")</ID>
+    <ID>MaxLineLength:ResumptionUtils.kt$ResumptionUtils$Log.w("GladixPlayback", "recoverQueue: windowed [$current,$end) of ${tracks.size}; skipped $dropped/${window.size} unbuildable")</ID>
+    <ID>MaxLineLength:SettingsPlayerFragment.kt$SettingsPlayerFragment.AudioPreference$context.resources.getStringArray(R.array.stream_qualities) + getString(R.string.unmetered_stream_quality_auto)</ID>
+    <ID>MaxLineLength:StreamableLoader.kt$StreamableLoader$Log.d("GladixPlayback", "loadTrack stub: id=${stub.id} servers=${stub.servers.map { it.id }} extras=${stub.extras}")</ID>
+    <ID>MaxLineLength:StreamableMediaSource.kt$StreamableMediaSource$Log.d("GladixPlayback", "handler.post: released, skipping prepareChildSource for ${mediaItem.mediaId}")</ID>
+    <ID>MaxLineLength:StreamableMediaSource.kt$StreamableMediaSource$Log.d("GladixPlayback", "stream loaded: ${new.mediaId} server=${server != null} sources=${sources?.size ?: "null"}")</ID>
+    <ID>MaxLineLength:TestExtension.kt$TestExtension.Companion$icon = "https://yt3.googleusercontent.com/UMGZZMPQkM3kGtyW4jNE1GtpSrydfNJdbG1UyWTp5zeqUYc6-rton70Imm7B11RulRRuK521NQ=s160-c-k-c0x00ffffff-no-rj".toImageHolder()</ID>
+    <ID>MaxLineLength:UiViewModel.kt$UiViewModel.Companion$fun</ID>
+    <ID>MaxLineLength:WebViewUtils.kt$WebViewUtils$"Mozilla/5.0 (Linux; Android 2; Jeff Bezos) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.158 Mobile Safari/537.36"</ID>
+    <ID>NestedBlockDepth:EditPlaylistViewModel.kt$EditPlaylistViewModel.Companion$fun &lt;T> computeActions( old: List&lt;T>, new: List&lt;T>, ): MutableList&lt;Action&lt;T>></ID>
+    <ID>NestedBlockDepth:FragmentUtils.kt$FragmentUtils$private fun FragmentActivity.onIntent(uiViewModel: UiViewModel, intent: Intent?)</ID>
+    <ID>NestedBlockDepth:HistoryDatabase.kt$HistoryDatabase.Companion.&lt;no name provided>$override suspend fun migrate(connection: SQLiteConnection)</ID>
+    <ID>NestedBlockDepth:MediaStoreUtils.kt$MediaStoreUtils$private fun Cursor.parseSongQuery( limitValue: Int, folderFilter: Set&lt;String>, blacklistKeywords: List&lt;String>, context: Context, songs: MutableList&lt;Track>, foundPlaylistContent: Boolean, idMap: MutableMap&lt;Long, Track>?, settings: Settings, block: (Track) -> Unit, )</ID>
+    <ID>NestedBlockDepth:MediaStoreUtils.kt$MediaStoreUtils$private fun playlistContent( context: Context, playlists: MutableList&lt;Pair&lt;MPlaylist, MutableList&lt;Long>>>, ): Boolean</ID>
+    <ID>NestedBlockDepth:PlayerCallback.kt$PlayerCallback$override fun onCustomCommand( session: MediaSession, controller: MediaSession.ControllerInfo, customCommand: SessionCommand, args: Bundle, ): ListenableFuture&lt;SessionResult></ID>
+    <ID>NestedBlockDepth:PlayerFragment.kt$PlayerFragment.&lt;no name provided>$override fun onClick(): Unit</ID>
+    <ID>NestedBlockDepth:PlayerRadio.kt$PlayerRadio$private suspend fun reseedFanOutLocked()</ID>
+    <ID>NestedBlockDepth:PlayerRadio.kt$PlayerRadio.Companion$suspend fun play( player: Player, downloadFlow: StateFlow&lt;List&lt;Downloader.Info>>, app: App, stateFlow: MutableStateFlow&lt;PlayerState.Radio>, loaded: PlayerState.Radio.Loaded, // The extension that owns the PLAYING item, for the endless-queue fallback's catalogue search. // Nullable with a default so a call site that cannot cheaply resolve it still compiles and // simply does not get the fallback — rather than forcing a resolution that could be wrong. extension: Extension&lt;*>? = null, // ⚠⚠ THE CALLER'S NAME, NOT THIS FUNCTION'S. Tagged "station_page" by function until // 2026-09-11, which was a level too coarse to be useful: play() is called by loadPlaylist, // topUpQueue, startRadio, PlayerCallback.radio AND PlayerCallback.trackRadio, so the append // line was identical whichever generated the station - and telling those apart was exactly the // question two device captures could not answer. A log that cannot distinguish its own callers // is not instrumentation, it is decoration. source: String = "station_page", ): PlayResult</ID>
+    <ID>NestedBlockDepth:TvAwareRecyclerView.kt$TvAwareRecyclerView$override fun focusSearch(focused: View, direction: Int): View?</ID>
+    <ID>NewLineAtEndOfFile:AddViewModel.kt$dev.brahmkshatriya.echo.ui.extensions.add.AddViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:AndroidAutoCallback.kt$dev.brahmkshatriya.echo.playback.AndroidAutoCallback.kt</ID>
+    <ID>NewLineAtEndOfFile:AnimationUtils.kt$dev.brahmkshatriya.echo.utils.ui.AnimationUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:ApkLinkParser.kt$dev.brahmkshatriya.echo.ui.extensions.ApkLinkParser.kt</ID>
+    <ID>NewLineAtEndOfFile:AppException.kt$dev.brahmkshatriya.echo.extensions.exceptions.AppException.kt</ID>
+    <ID>NewLineAtEndOfFile:AppRepository.kt$dev.brahmkshatriya.echo.extensions.repo.AppRepository.kt</ID>
+    <ID>NewLineAtEndOfFile:AppShortcuts.kt$dev.brahmkshatriya.echo.utils.AppShortcuts.kt</ID>
+    <ID>NewLineAtEndOfFile:AppUpdater.kt$dev.brahmkshatriya.echo.utils.AppUpdater.kt</ID>
+    <ID>NewLineAtEndOfFile:AudioEffectsFragment.kt$dev.brahmkshatriya.echo.ui.settings.AudioEffectsFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:AutoClearedValue.kt$dev.brahmkshatriya.echo.utils.ui.AutoClearedValue.kt</ID>
+    <ID>NewLineAtEndOfFile:BaseSettingsFragment.kt$dev.brahmkshatriya.echo.ui.settings.BaseSettingsFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:BaseTask.kt$dev.brahmkshatriya.echo.download.tasks.BaseTask.kt</ID>
+    <ID>NewLineAtEndOfFile:BaseWidget.kt$dev.brahmkshatriya.echo.widget.BaseWidget.kt</ID>
+    <ID>NewLineAtEndOfFile:BlurTransformation.kt$dev.brahmkshatriya.echo.utils.image.BlurTransformation.kt</ID>
+    <ID>NewLineAtEndOfFile:ButtonsAdapter.kt$dev.brahmkshatriya.echo.ui.feed.ButtonsAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:Cached.kt$dev.brahmkshatriya.echo.extensions.cache.Cached.kt</ID>
+    <ID>NewLineAtEndOfFile:CategoryViewHolder.kt$dev.brahmkshatriya.echo.ui.feed.viewholders.CategoryViewHolder.kt</ID>
+    <ID>NewLineAtEndOfFile:CheckBoxListener.kt$dev.brahmkshatriya.echo.utils.ui.CheckBoxListener.kt</ID>
+    <ID>NewLineAtEndOfFile:ColorListPreference.kt$dev.brahmkshatriya.echo.utils.ui.prefs.ColorListPreference.kt</ID>
+    <ID>NewLineAtEndOfFile:ColorPickerDialog.kt$dev.brahmkshatriya.echo.utils.ui.prefs.ColorPickerDialog.kt</ID>
+    <ID>NewLineAtEndOfFile:CombinedRepository.kt$dev.brahmkshatriya.echo.extensions.repo.CombinedRepository.kt</ID>
+    <ID>NewLineAtEndOfFile:ContextUtils.kt$dev.brahmkshatriya.echo.utils.ContextUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:ControllerHelper.kt$dev.brahmkshatriya.echo.widget.ControllerHelper.kt</ID>
+    <ID>NewLineAtEndOfFile:CoroutineUtils.kt$dev.brahmkshatriya.echo.utils.CoroutineUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:CreatePlaylistBottomSheet.kt$dev.brahmkshatriya.echo.ui.playlist.create.CreatePlaylistBottomSheet.kt</ID>
+    <ID>NewLineAtEndOfFile:CreatePlaylistViewModel.kt$dev.brahmkshatriya.echo.ui.playlist.create.CreatePlaylistViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:CreateState.kt$dev.brahmkshatriya.echo.ui.playlist.create.CreateState.kt</ID>
+    <ID>NewLineAtEndOfFile:CurrentUser.kt$dev.brahmkshatriya.echo.extensions.db.models.CurrentUser.kt</ID>
+    <ID>NewLineAtEndOfFile:DI.kt$dev.brahmkshatriya.echo.di.DI.kt</ID>
+    <ID>NewLineAtEndOfFile:DeletePlaylistBottomSheet.kt$dev.brahmkshatriya.echo.ui.playlist.delete.DeletePlaylistBottomSheet.kt</ID>
+    <ID>NewLineAtEndOfFile:DeletePlaylistViewModel.kt$dev.brahmkshatriya.echo.ui.playlist.delete.DeletePlaylistViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:DeleteState.kt$dev.brahmkshatriya.echo.ui.playlist.delete.DeleteState.kt</ID>
+    <ID>NewLineAtEndOfFile:DexLoader.kt$dev.brahmkshatriya.echo.extensions.repo.DexLoader.kt</ID>
+    <ID>NewLineAtEndOfFile:DownloadDao.kt$dev.brahmkshatriya.echo.download.db.DownloadDao.kt</ID>
+    <ID>NewLineAtEndOfFile:DownloadDatabase.kt$dev.brahmkshatriya.echo.download.db.DownloadDatabase.kt</ID>
+    <ID>NewLineAtEndOfFile:DownloadEntity.kt$dev.brahmkshatriya.echo.download.db.models.DownloadEntity.kt</ID>
+    <ID>NewLineAtEndOfFile:DownloadException.kt$dev.brahmkshatriya.echo.download.exceptions.DownloadException.kt</ID>
+    <ID>NewLineAtEndOfFile:DownloadFragment.kt$dev.brahmkshatriya.echo.ui.download.DownloadFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:DownloadViewModel.kt$dev.brahmkshatriya.echo.ui.download.DownloadViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:DownloadWorker.kt$dev.brahmkshatriya.echo.download.DownloadWorker.kt</ID>
+    <ID>NewLineAtEndOfFile:Downloader.kt$dev.brahmkshatriya.echo.download.Downloader.kt</ID>
+    <ID>NewLineAtEndOfFile:DownloaderExtensionNotFoundException.kt$dev.brahmkshatriya.echo.download.exceptions.DownloaderExtensionNotFoundException.kt</ID>
+    <ID>NewLineAtEndOfFile:DownloadingTask.kt$dev.brahmkshatriya.echo.download.tasks.DownloadingTask.kt</ID>
+    <ID>NewLineAtEndOfFile:DownloadsAdapter.kt$dev.brahmkshatriya.echo.ui.download.DownloadsAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:EditPlaylistBottomSheet.kt$dev.brahmkshatriya.echo.ui.playlist.edit.EditPlaylistBottomSheet.kt</ID>
+    <ID>NewLineAtEndOfFile:EditPlaylistFragment.kt$dev.brahmkshatriya.echo.ui.playlist.edit.EditPlaylistFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:EditPlaylistHeaderAdapter.kt$dev.brahmkshatriya.echo.ui.playlist.edit.EditPlaylistHeaderAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:EditPlaylistSearchClickListener.kt$dev.brahmkshatriya.echo.ui.playlist.edit.search.EditPlaylistSearchClickListener.kt</ID>
+    <ID>NewLineAtEndOfFile:EditPlaylistSearchFragment.kt$dev.brahmkshatriya.echo.ui.playlist.edit.search.EditPlaylistSearchFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:EditPlaylistSearchViewModel.kt$dev.brahmkshatriya.echo.ui.playlist.edit.search.EditPlaylistSearchViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:EffectsListener.kt$dev.brahmkshatriya.echo.playback.listener.EffectsListener.kt</ID>
+    <ID>NewLineAtEndOfFile:EmptyAdapter.kt$dev.brahmkshatriya.echo.ui.feed.EmptyAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:ExceptionFragment.kt$dev.brahmkshatriya.echo.ui.common.ExceptionFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:ExceptionUtils.kt$dev.brahmkshatriya.echo.ui.common.ExceptionUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionDao.kt$dev.brahmkshatriya.echo.extensions.db.ExtensionDao.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionDatabase.kt$dev.brahmkshatriya.echo.extensions.db.ExtensionDatabase.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionEntity.kt$dev.brahmkshatriya.echo.extensions.db.models.ExtensionEntity.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionInfoFragment.kt$dev.brahmkshatriya.echo.ui.extensions.ExtensionInfoFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionInfoPreference.kt$dev.brahmkshatriya.echo.ui.extensions.ExtensionInfoPreference.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionInfoViewModel.kt$dev.brahmkshatriya.echo.ui.extensions.ExtensionInfoViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionInstallerBottomSheet.kt$dev.brahmkshatriya.echo.ui.extensions.ExtensionInstallerBottomSheet.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionListViewModel.kt$dev.brahmkshatriya.echo.ui.extensions.list.ExtensionListViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionLoader.kt$dev.brahmkshatriya.echo.extensions.ExtensionLoader.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionLoaderException.kt$dev.brahmkshatriya.echo.extensions.exceptions.ExtensionLoaderException.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionNotFoundException.kt$dev.brahmkshatriya.echo.extensions.exceptions.ExtensionNotFoundException.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionParser.kt$dev.brahmkshatriya.echo.extensions.repo.ExtensionParser.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionRepository.kt$dev.brahmkshatriya.echo.extensions.repo.ExtensionRepository.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionUtils.kt$dev.brahmkshatriya.echo.extensions.ExtensionUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionsAddBottomSheet.kt$dev.brahmkshatriya.echo.ui.extensions.add.ExtensionsAddBottomSheet.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionsListBottomSheet.kt$dev.brahmkshatriya.echo.ui.extensions.list.ExtensionsListBottomSheet.kt</ID>
+    <ID>NewLineAtEndOfFile:ExtensionsViewModel.kt$dev.brahmkshatriya.echo.ui.extensions.ExtensionsViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:FeedAdapter.kt$dev.brahmkshatriya.echo.ui.feed.FeedAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:FeedClickListener.kt$dev.brahmkshatriya.echo.ui.feed.FeedClickListener.kt</ID>
+    <ID>NewLineAtEndOfFile:FeedData.kt$dev.brahmkshatriya.echo.ui.feed.FeedData.kt</ID>
+    <ID>NewLineAtEndOfFile:FeedFragment.kt$dev.brahmkshatriya.echo.ui.feed.FeedFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:FeedLoadingAdapter.kt$dev.brahmkshatriya.echo.ui.feed.FeedLoadingAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:FeedSort.kt$dev.brahmkshatriya.echo.ui.feed.FeedSort.kt</ID>
+    <ID>NewLineAtEndOfFile:FeedSortBottomSheet.kt$dev.brahmkshatriya.echo.ui.feed.FeedSortBottomSheet.kt</ID>
+    <ID>NewLineAtEndOfFile:FeedType.kt$dev.brahmkshatriya.echo.ui.feed.FeedType.kt</ID>
+    <ID>NewLineAtEndOfFile:FeedViewHolder.kt$dev.brahmkshatriya.echo.ui.feed.viewholders.FeedViewHolder.kt</ID>
+    <ID>NewLineAtEndOfFile:FeedViewModel.kt$dev.brahmkshatriya.echo.ui.feed.FeedViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:FileRepository.kt$dev.brahmkshatriya.echo.extensions.repo.FileRepository.kt</ID>
+    <ID>NewLineAtEndOfFile:GestureListener.kt$dev.brahmkshatriya.echo.utils.ui.GestureListener.kt</ID>
+    <ID>NewLineAtEndOfFile:GradientDrawable.kt$dev.brahmkshatriya.echo.utils.ui.GradientDrawable.kt</ID>
+    <ID>NewLineAtEndOfFile:GridAdapter.kt$dev.brahmkshatriya.echo.ui.common.GridAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:HeaderAdapter.kt$dev.brahmkshatriya.echo.ui.main.HeaderAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:HeaderViewHolder.kt$dev.brahmkshatriya.echo.ui.feed.viewholders.HeaderViewHolder.kt</ID>
+    <ID>NewLineAtEndOfFile:HomeFragment.kt$dev.brahmkshatriya.echo.ui.main.HomeFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:HorizontalListViewHolder.kt$dev.brahmkshatriya.echo.ui.feed.viewholders.HorizontalListViewHolder.kt</ID>
+    <ID>NewLineAtEndOfFile:ImageUtils.kt$dev.brahmkshatriya.echo.utils.image.ImageUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:InstallationUtils.kt$dev.brahmkshatriya.echo.extensions.InstallationUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:InvalidExtensionListException.kt$dev.brahmkshatriya.echo.extensions.exceptions.InvalidExtensionListException.kt</ID>
+    <ID>NewLineAtEndOfFile:LibraryFragment.kt$dev.brahmkshatriya.echo.ui.main.LibraryFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:LineAdapter.kt$dev.brahmkshatriya.echo.ui.media.LineAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:LoadingPreference.kt$dev.brahmkshatriya.echo.utils.ui.prefs.LoadingPreference.kt</ID>
+    <ID>NewLineAtEndOfFile:LoadingTask.kt$dev.brahmkshatriya.echo.download.tasks.LoadingTask.kt</ID>
+    <ID>NewLineAtEndOfFile:LoginFragment.kt$dev.brahmkshatriya.echo.ui.extensions.login.LoginFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:LoginUserListBottomSheet.kt$dev.brahmkshatriya.echo.ui.extensions.login.LoginUserListBottomSheet.kt</ID>
+    <ID>NewLineAtEndOfFile:LoginUserListViewModel.kt$dev.brahmkshatriya.echo.ui.extensions.login.LoginUserListViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:LoginViewModel.kt$dev.brahmkshatriya.echo.ui.extensions.login.LoginViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:LyricAdapter.kt$dev.brahmkshatriya.echo.ui.player.more.lyrics.LyricAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:LyricsFragment.kt$dev.brahmkshatriya.echo.ui.player.more.lyrics.LyricsFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:LyricsItemAdapter.kt$dev.brahmkshatriya.echo.ui.player.more.lyrics.LyricsItemAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:LyricsViewModel.kt$dev.brahmkshatriya.echo.ui.player.more.lyrics.LyricsViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:MainActivity.kt$dev.brahmkshatriya.echo.MainActivity.kt</ID>
+    <ID>NewLineAtEndOfFile:MainApplication.kt$dev.brahmkshatriya.echo.MainApplication.kt</ID>
+    <ID>NewLineAtEndOfFile:MainFragment.kt$dev.brahmkshatriya.echo.ui.main.MainFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:ManageExtensionsFragment.kt$dev.brahmkshatriya.echo.ui.extensions.manage.ManageExtensionsFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:MaterialListPreference.kt$dev.brahmkshatriya.echo.utils.ui.prefs.MaterialListPreference.kt</ID>
+    <ID>NewLineAtEndOfFile:MaterialMultipleChoicePreference.kt$dev.brahmkshatriya.echo.utils.ui.prefs.MaterialMultipleChoicePreference.kt</ID>
+    <ID>NewLineAtEndOfFile:MaterialSliderPreference.kt$dev.brahmkshatriya.echo.utils.ui.prefs.MaterialSliderPreference.kt</ID>
+    <ID>NewLineAtEndOfFile:MaterialTextInputPreference.kt$dev.brahmkshatriya.echo.utils.ui.prefs.MaterialTextInputPreference.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaDetailsFragment.kt$dev.brahmkshatriya.echo.ui.media.MediaDetailsFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaDetailsViewModel.kt$dev.brahmkshatriya.echo.ui.media.MediaDetailsViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaFragment.kt$dev.brahmkshatriya.echo.ui.media.MediaFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaGridViewHolder.kt$dev.brahmkshatriya.echo.ui.feed.viewholders.MediaGridViewHolder.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaHeaderAdapter.kt$dev.brahmkshatriya.echo.ui.media.MediaHeaderAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaItemAdapter.kt$dev.brahmkshatriya.echo.ui.playlist.save.MediaItemAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaMoreBottomSheet.kt$dev.brahmkshatriya.echo.ui.media.more.MediaMoreBottomSheet.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaSessionServiceListener.kt$dev.brahmkshatriya.echo.playback.listener.MediaSessionServiceListener.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaState.kt$dev.brahmkshatriya.echo.extensions.MediaState.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaStoreUtils.kt$dev.brahmkshatriya.echo.extensions.builtin.offline.MediaStoreUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaViewHolder.kt$dev.brahmkshatriya.echo.ui.feed.viewholders.MediaViewHolder.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaViewModel.kt$dev.brahmkshatriya.echo.ui.media.MediaViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:MergingTask.kt$dev.brahmkshatriya.echo.download.tasks.MergingTask.kt</ID>
+    <ID>NewLineAtEndOfFile:MoreButton.kt$dev.brahmkshatriya.echo.ui.media.more.MoreButton.kt</ID>
+    <ID>NewLineAtEndOfFile:MoreButtonAdapter.kt$dev.brahmkshatriya.echo.ui.media.more.MoreButtonAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:MoreHeaderAdapter.kt$dev.brahmkshatriya.echo.ui.media.more.MoreHeaderAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:OfflineExtension.kt$dev.brahmkshatriya.echo.extensions.builtin.offline.OfflineExtension.kt</ID>
+    <ID>NewLineAtEndOfFile:PagedSource.kt$dev.brahmkshatriya.echo.ui.common.PagedSource.kt</ID>
+    <ID>NewLineAtEndOfFile:PauseTimer.kt$dev.brahmkshatriya.echo.utils.PauseTimer.kt</ID>
+    <ID>NewLineAtEndOfFile:PermsUtils.kt$dev.brahmkshatriya.echo.utils.PermsUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:PlayerBitmapLoader.kt$dev.brahmkshatriya.echo.playback.renderer.PlayerBitmapLoader.kt</ID>
+    <ID>NewLineAtEndOfFile:PlayerCallback.kt$dev.brahmkshatriya.echo.playback.PlayerCallback.kt</ID>
+    <ID>NewLineAtEndOfFile:PlayerColors.kt$dev.brahmkshatriya.echo.ui.player.PlayerColors.kt</ID>
+    <ID>NewLineAtEndOfFile:PlayerCommands.kt$dev.brahmkshatriya.echo.playback.PlayerCommands.kt</ID>
+    <ID>NewLineAtEndOfFile:PlayerException.kt$dev.brahmkshatriya.echo.playback.exceptions.PlayerException.kt</ID>
+    <ID>NewLineAtEndOfFile:PlayerFragment.kt$dev.brahmkshatriya.echo.ui.player.PlayerFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:PlayerMoreFragment.kt$dev.brahmkshatriya.echo.ui.player.more.PlayerMoreFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:PlayerService.kt$dev.brahmkshatriya.echo.playback.PlayerService.kt</ID>
+    <ID>NewLineAtEndOfFile:PlayerTrackAdapter.kt$dev.brahmkshatriya.echo.ui.player.PlayerTrackAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:PlayerUiListener.kt$dev.brahmkshatriya.echo.ui.player.PlayerUiListener.kt</ID>
+    <ID>NewLineAtEndOfFile:PlayerViewModel.kt$dev.brahmkshatriya.echo.ui.player.PlayerViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:PlaylistTrackAdapter.kt$dev.brahmkshatriya.echo.ui.playlist.edit.PlaylistTrackAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:PrefsUtils.kt$dev.brahmkshatriya.echo.utils.PrefsUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:QualitySelectionBottomSheet.kt$dev.brahmkshatriya.echo.ui.player.quality.QualitySelectionBottomSheet.kt</ID>
+    <ID>NewLineAtEndOfFile:QueueFragment.kt$dev.brahmkshatriya.echo.ui.player.more.upnext.QueueFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:QuickSearchAdapter.kt$dev.brahmkshatriya.echo.ui.main.search.QuickSearchAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:QuickSearchViewHolder.kt$dev.brahmkshatriya.echo.ui.main.search.QuickSearchViewHolder.kt</ID>
+    <ID>NewLineAtEndOfFile:RawDataSource.kt$dev.brahmkshatriya.echo.playback.source.RawDataSource.kt</ID>
+    <ID>NewLineAtEndOfFile:RenderersFactory.kt$dev.brahmkshatriya.echo.playback.renderer.RenderersFactory.kt</ID>
+    <ID>NewLineAtEndOfFile:RequiredExtensionsMissingException.kt$dev.brahmkshatriya.echo.extensions.exceptions.RequiredExtensionsMissingException.kt</ID>
+    <ID>NewLineAtEndOfFile:RulerAdapter.kt$dev.brahmkshatriya.echo.utils.ui.RulerAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:SaveToPlaylistBottomSheet.kt$dev.brahmkshatriya.echo.ui.playlist.save.SaveToPlaylistBottomSheet.kt</ID>
+    <ID>NewLineAtEndOfFile:SaveToPlaylistViewModel.kt$dev.brahmkshatriya.echo.ui.playlist.save.SaveToPlaylistViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:SaveToUnifiedTask.kt$dev.brahmkshatriya.echo.download.tasks.SaveToUnifiedTask.kt</ID>
+    <ID>NewLineAtEndOfFile:ScrollAnimListAdapter.kt$dev.brahmkshatriya.echo.utils.ui.scrolling.ScrollAnimListAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:ScrollAnimLoadStateAdapter.kt$dev.brahmkshatriya.echo.utils.ui.scrolling.ScrollAnimLoadStateAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:ScrollAnimPagingAdapter.kt$dev.brahmkshatriya.echo.utils.ui.scrolling.ScrollAnimPagingAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:ScrollAnimRecyclerAdapter.kt$dev.brahmkshatriya.echo.utils.ui.scrolling.ScrollAnimRecyclerAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:ScrollAnimViewHolder.kt$dev.brahmkshatriya.echo.utils.ui.scrolling.ScrollAnimViewHolder.kt</ID>
+    <ID>NewLineAtEndOfFile:SearchBarAdapter.kt$dev.brahmkshatriya.echo.ui.main.search.SearchBarAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:SearchFragment.kt$dev.brahmkshatriya.echo.ui.main.search.SearchFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:SearchViewModel.kt$dev.brahmkshatriya.echo.ui.main.search.SearchViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:SelectableMediaAdapter.kt$dev.brahmkshatriya.echo.ui.playlist.SelectableMediaAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:Serializer.kt$dev.brahmkshatriya.echo.utils.Serializer.kt</ID>
+    <ID>NewLineAtEndOfFile:SettingsBottomSheet.kt$dev.brahmkshatriya.echo.ui.settings.SettingsBottomSheet.kt</ID>
+    <ID>NewLineAtEndOfFile:SettingsLookFragment.kt$dev.brahmkshatriya.echo.ui.settings.SettingsLookFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:SettingsOtherFragment.kt$dev.brahmkshatriya.echo.ui.settings.SettingsOtherFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:ShaUtils.kt$dev.brahmkshatriya.echo.utils.ShaUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:ShelfType.kt$dev.brahmkshatriya.echo.ui.feed.viewholders.shelf.ShelfType.kt</ID>
+    <ID>NewLineAtEndOfFile:ShelfViewHolder.kt$dev.brahmkshatriya.echo.ui.feed.viewholders.shelf.ShelfViewHolder.kt</ID>
+    <ID>NewLineAtEndOfFile:SimpleItemSpan.kt$dev.brahmkshatriya.echo.utils.ui.SimpleItemSpan.kt</ID>
+    <ID>NewLineAtEndOfFile:SleepTimerBottomSheet.kt$dev.brahmkshatriya.echo.ui.player.sleep.SleepTimerBottomSheet.kt</ID>
+    <ID>NewLineAtEndOfFile:SnackBarHandler.kt$dev.brahmkshatriya.echo.ui.common.SnackBarHandler.kt</ID>
+    <ID>NewLineAtEndOfFile:SquareCropTransformation.kt$dev.brahmkshatriya.echo.utils.image.SquareCropTransformation.kt</ID>
+    <ID>NewLineAtEndOfFile:StreamableLoader.kt$dev.brahmkshatriya.echo.playback.source.StreamableLoader.kt</ID>
+    <ID>NewLineAtEndOfFile:StreamableMediaSource.kt$dev.brahmkshatriya.echo.playback.source.StreamableMediaSource.kt</ID>
+    <ID>NewLineAtEndOfFile:StreamableResolver.kt$dev.brahmkshatriya.echo.playback.source.StreamableResolver.kt</ID>
+    <ID>NewLineAtEndOfFile:SwitchLongClickPreference.kt$dev.brahmkshatriya.echo.utils.ui.prefs.SwitchLongClickPreference.kt</ID>
+    <ID>NewLineAtEndOfFile:TabsAdapter.kt$dev.brahmkshatriya.echo.ui.feed.TabsAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:TaggingTask.kt$dev.brahmkshatriya.echo.download.tasks.TaggingTask.kt</ID>
+    <ID>NewLineAtEndOfFile:TaskType.kt$dev.brahmkshatriya.echo.download.db.models.TaskType.kt</ID>
+    <ID>NewLineAtEndOfFile:TestExtension.kt$dev.brahmkshatriya.echo.extensions.builtin.test.TestExtension.kt</ID>
+    <ID>NewLineAtEndOfFile:TopAppBarAdapter.kt$dev.brahmkshatriya.echo.ui.playlist.save.TopAppBarAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:TrackInfoFragment.kt$dev.brahmkshatriya.echo.ui.player.more.info.TrackInfoFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:TrackInfoViewModel.kt$dev.brahmkshatriya.echo.ui.player.more.info.TrackInfoViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:TrackingListener.kt$dev.brahmkshatriya.echo.playback.listener.TrackingListener.kt</ID>
+    <ID>NewLineAtEndOfFile:TransitionPreference.kt$dev.brahmkshatriya.echo.utils.ui.prefs.TransitionPreference.kt</ID>
+    <ID>NewLineAtEndOfFile:UiUtils.kt$dev.brahmkshatriya.echo.utils.ui.UiUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:UiViewModel.kt$dev.brahmkshatriya.echo.ui.common.UiViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:UnifiedExtension.kt$dev.brahmkshatriya.echo.extensions.builtin.unified.UnifiedExtension.kt</ID>
+    <ID>NewLineAtEndOfFile:UserDao.kt$dev.brahmkshatriya.echo.extensions.db.UserDao.kt</ID>
+    <ID>NewLineAtEndOfFile:VideoHorizontalViewHolder.kt$dev.brahmkshatriya.echo.ui.feed.viewholders.VideoHorizontalViewHolder.kt</ID>
+    <ID>NewLineAtEndOfFile:VideoViewHolder.kt$dev.brahmkshatriya.echo.ui.feed.viewholders.VideoViewHolder.kt</ID>
+    <ID>NewLineAtEndOfFile:ViewPager2Utils.kt$dev.brahmkshatriya.echo.utils.ui.ViewPager2Utils.kt</ID>
+    <ID>NewLineAtEndOfFile:WebViewClientFactory.kt$dev.brahmkshatriya.echo.extensions.WebViewClientFactory.kt</ID>
+    <ID>NewLineAtEndOfFile:WidgetCircle.kt$dev.brahmkshatriya.echo.widget.WidgetCircle.kt</ID>
+    <ID>NewLineAtEndOfFile:WidgetPlayerListener.kt$dev.brahmkshatriya.echo.widget.WidgetPlayerListener.kt</ID>
+    <ID>PrintStackTrace:App.kt$App$e</ID>
+    <ID>PrintStackTrace:ImageUtils.kt$ImageUtils$e</ID>
+    <ID>ReturnCount:AndroidAutoCallback.kt$AndroidAutoCallback$@CallSuper override fun onGetLibraryRoot( session: MediaLibrarySession, browser: MediaSession.ControllerInfo, params: MediaLibraryService.LibraryParams? ): ListenableFuture&lt;LibraryResult&lt;MediaItem>></ID>
+    <ID>ReturnCount:AppUpdater.kt$AppUpdater$@Suppress("KotlinConstantConditions") suspend fun updateApp( app: App, ensureInstallPermission: suspend () -> Boolean = { true } ): File?</ID>
+    <ID>ReturnCount:CacheUtils.kt$CacheUtils$@OptIn(ExperimentalSerializationApi::class) inline fun &lt;reified T> Context.getFromCache( id: String, folderName: String = T::class.java.simpleName, durable: Boolean = false, maxBytes: Long = Long.MAX_VALUE, ): T?</ID>
+    <ID>ReturnCount:Cached.kt$Cached$private suspend fun loadAlbumTracksCached( app: App, extension: Extension&lt;*>, item: Album, ): Feed&lt;Track>?</ID>
+    <ID>ReturnCount:DexLoader.kt$DexLoader$override fun loadClass(name: String?, resolve: Boolean): Class&lt;*></ID>
+    <ID>ReturnCount:EffectsListener.kt$EffectsListener$private fun scheduleFadeOut()</ID>
+    <ID>ReturnCount:ExtensionsViewModel.kt$ExtensionsViewModel$private suspend fun getExtensionUpdate( extension: Extension&lt;*>, show: Boolean = false, announce: Boolean = true, ): Result&lt;File?></ID>
+    <ID>ReturnCount:ExtensionsViewModel.kt$ExtensionsViewModel$private suspend fun updateExt( ext: Extension&lt;*>, show: Boolean = false, announce: Boolean = true, ): ExtUpdate</ID>
+    <ID>ReturnCount:FeedAdapter.kt$FeedAdapter$fun getAllTracks(feed: FeedType): Pair&lt;List&lt;Track>, Int></ID>
+    <ID>ReturnCount:FeedAdapter.kt$FeedAdapter.Companion.&lt;no name provided>$private fun buzz(view: View)</ID>
+    <ID>ReturnCount:FeedAdapter.kt$FeedAdapter.Companion.&lt;no name provided>$private fun commitRelease(row: RecyclerView.ViewHolder?, dx: Float)</ID>
+    <ID>ReturnCount:FeedAdapter.kt$FeedAdapter.DiffCallback$override fun areItemsTheSame(oldItem: FeedType, newItem: FeedType): Boolean</ID>
+    <ID>ReturnCount:FeedClickListener.kt$FeedClickListener$open fun onMediaClicked( view: View?, extensionId: String?, item: EchoMediaItem?, context: EchoMediaItem? ): Boolean</ID>
+    <ID>ReturnCount:FeedClickListener.kt$FeedClickListener$open fun onMediaLongClicked( view: View?, extensionId: String?, item: EchoMediaItem?, context: EchoMediaItem?, tabId: String?, index: Int ): Boolean</ID>
+    <ID>ReturnCount:FeedClickListener.kt$FeedClickListener$open fun onPlayClicked( view: View?, extensionId: String?, context: EchoMediaItem?, tracks: List&lt;Track>?, shuffle: Boolean ): Boolean</ID>
+    <ID>ReturnCount:FeedClickListener.kt$FeedClickListener$open fun onTrackSwiped( view: View?, extensionId: String?, track: Track?, ): Boolean</ID>
+    <ID>ReturnCount:FeedClickListener.kt$FeedClickListener$open fun onTracksClicked( view: View?, extensionId: String?, context: EchoMediaItem?, tracks: List&lt;Track>?, pos: Int ): Boolean</ID>
+    <ID>ReturnCount:FeedClickListener.kt$FeedClickListener$open fun openFeed( view: View?, extensionId: String?, feedId: String?, title: String?, subtitle: String?, feed: Feed&lt;Shelf>? ): Boolean</ID>
+    <ID>ReturnCount:FeedData.kt$FeedData$private suspend fun &lt;T : Any> PagedData&lt;T>.loadTill( shelfLimit: Int, itemLimit: Int, weight: (T) -> Int, ): List&lt;T></ID>
+    <ID>ReturnCount:FragmentUtils.kt$FragmentUtils$private fun FragmentActivity.onIntent(uiViewModel: UiViewModel, intent: Intent?)</ID>
+    <ID>ReturnCount:FragmentUtils.kt$FragmentUtils$private fun FragmentActivity.openItemFragmentFromUri(uri: Uri)</ID>
+    <ID>ReturnCount:GridAdapter.kt$GridAdapter.VerticalSpacingItemDecoration$override fun getItemOffsets( outRect: Rect, view: View, parent: RecyclerView, state: RecyclerView.State )</ID>
+    <ID>ReturnCount:InstallationUtils.kt$InstallationUtils$suspend fun FragmentActivity.ensureCanInstallPackages(): Boolean</ID>
+    <ID>ReturnCount:LyricsFragment.kt$LyricsFragment$private fun updateLyrics(current: Long)</ID>
+    <ID>ReturnCount:MainActivity.kt$MainActivity$private fun View.findVisibleTvFeed(): TvAwareRecyclerView?</ID>
+    <ID>ReturnCount:MainActivity.kt$MainActivity$private fun setupTvNavRail()</ID>
+    <ID>ReturnCount:MediaStoreUtils.kt$MediaStoreUtils$private fun wagnerFischer(s: String, t: String): Int</ID>
+    <ID>ReturnCount:PermsUtils.kt$PermsUtils$fun ComponentActivity.checkBatteryOptimization()</ID>
+    <ID>ReturnCount:PlayerCallback.kt$PlayerCallback$override suspend fun freshContextUpcoming( extId: String, context: EchoMediaItem, tappedTrackId: String ): List&lt;MediaItem></ID>
+    <ID>ReturnCount:PlayerColors.kt$PlayerColors.Companion$fun Context.getColorsFrom(bitmap: Bitmap?): PlayerColors?</ID>
+    <ID>ReturnCount:PlayerEventListener.kt$PlayerEventListener$override fun onPlayerError(error: PlaybackException)</ID>
+    <ID>ReturnCount:PlayerEventListener.kt$PlayerEventListener$private fun skipFamilyOf(cause: Throwable?, playbackError: PlaybackException?): SkipFamily</ID>
+    <ID>ReturnCount:PlayerFragment.kt$PlayerFragment$private fun loadCurrentBackground(item: MediaItem?)</ID>
+    <ID>ReturnCount:PlayerRadio.kt$PlayerRadio$private fun currentRadio(): PlayerState.Radio</ID>
+    <ID>ReturnCount:PlayerRadio.kt$PlayerRadio$private suspend fun topUpQueue()</ID>
+    <ID>ReturnCount:PlayerRadio.kt$PlayerRadio$private suspend fun tvDriveRadio(atEnd: Boolean)</ID>
+    <ID>ReturnCount:PlayerRadio.kt$PlayerRadio.Companion$suspend fun throwBridge( player: Player, downloadFlow: StateFlow&lt;List&lt;Downloader.Info>>, app: App, extension: Extension&lt;*>, seed: Track, failure: Throwable, // The context loadPlaylist was generating FROM. Needed for the stamp - see the note at `context` // below; passing it is what keeps a live station's identity from being overwritten. itemContext: EchoMediaItem?, )</ID>
+    <ID>ReturnCount:PlayerService.kt$PlayerService.Companion$private fun &lt;E> List&lt;E>.select( app: App, settings: SharedPreferences, quality: (E) -> Int, default: String = streamQualities[1], ): E?</ID>
+    <ID>ReturnCount:PlayerTrackAdapter.kt$PlayerTrackAdapter.ViewHolder$fun applyDrawable()</ID>
+    <ID>ReturnCount:PlayerTvFragment.kt$PlayerTvFragment$private fun ImageHolder?.toMaxRes(): ImageHolder?</ID>
+    <ID>ReturnCount:PlaylistTrackAdapter.kt$PlaylistTrackAdapter.Companion.&lt;no name provided>$override fun onMove( recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder ): Boolean</ID>
+    <ID>ReturnCount:QueueFragment.kt$QueueFragment.&lt;no name provided>$override fun onMove( recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder ): Boolean</ID>
+    <ID>ReturnCount:RadioFallback.kt$RadioFallback$suspend fun similarTracks(extension: Extension&lt;*>, seed: Track): List&lt;Track></ID>
+    <ID>ReturnCount:ResumptionUtils.kt$ResumptionUtils$@OptIn(ExperimentalSerializationApi::class) private inline fun &lt;reified T> Context.getFromQueue(id: String): T?</ID>
+    <ID>ReturnCount:ResumptionUtils.kt$ResumptionUtils$fun &lt;T> resolveCurrentIndex( items: List&lt;T>, coercedIndex: Int, savedCurrentId: String?, idOf: (T) -> String?, ): Int</ID>
+    <ID>ReturnCount:ResumptionUtils.kt$ResumptionUtils$private fun Context.recoverQueue( app: App, downloads: List&lt;Downloader.Info>, healthMonitor: HealthMonitor? = null, ): List&lt;MediaItem>?</ID>
+    <ID>ReturnCount:ResumptionUtils.kt$ResumptionUtils$private fun assembleLegacy( tracks: List&lt;Track>?, extensionIds: List&lt;String>?, contexts: List&lt;EchoMediaItem?>?, ): List&lt;Pair&lt;MediaState.Unloaded&lt;Track>, EchoMediaItem?>>?</ID>
+    <ID>ReturnCount:SaveToPlaylistViewModel.kt$SaveToPlaylistViewModel$fun togglePlaylist(playlist: Playlist)</ID>
+    <ID>ReturnCount:SearchViewModel.kt$SearchViewModel.Companion$fun defaultQuickSearch( extension: Extension&lt;*>?, context: Context, query: String ): List&lt;QuickSearchItem></ID>
+    <ID>ReturnCount:ShufflePlayer.kt$ShufflePlayer$override fun getPlayerError(): PlaybackException?</ID>
+    <ID>ReturnCount:TrackingListener.kt$TrackingListener$override fun onPositionDiscontinuity( oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int )</ID>
+    <ID>ReturnCount:TvAwareRecyclerView.kt$TvAwareRecyclerView$override fun focusSearch(focused: View, direction: Int): View?</ID>
+    <ID>ReturnCount:TvAwareRecyclerView.kt$TvAwareRecyclerView$private fun View.firstRecyclerOrSelf(): RecyclerView?</ID>
+    <ID>ReturnCount:TvAwareRecyclerView.kt$TvAwareRecyclerView$private fun advanceFocusDown(glm: GridLayoutManager, targetPos: Int, focused: View): View</ID>
+    <ID>ReturnCount:TvAwareRecyclerView.kt$TvAwareRecyclerView$private fun revealFocusableAbove(glm: GridLayoutManager, fromPos: Int, focused: View): View</ID>
+    <ID>ReturnCount:UiViewModel.kt$UiViewModel$fun changePlayerState(state: Int)</ID>
+    <ID>ReturnCount:UiViewModel.kt$UiViewModel$fun getSnackbarInsets(): Insets</ID>
+    <ID>ReturnCount:UnifiedDatabase.kt$UnifiedDatabase$suspend fun getTracks(playlist: Playlist): List&lt;Track></ID>
+    <ID>ReturnCount:UnifiedDatabase.kt$UnifiedDatabase$suspend fun loadPlaylist(playlist: Playlist): Playlist</ID>
+    <ID>ReturnCount:UserBlock.kt$UserBlock$fun unshuffledInsertIndex( isShuffled: Boolean, timelineIndex: Int, originalSize: Int, anchorOriginalIndex: Int?, ): Int</ID>
+    <ID>SpreadOperator:AndroidAutoCallback.kt$AndroidAutoCallback.Companion$( *list.map { it.toMediaItem(context, extId) }.toTypedArray() )</ID>
+    <ID>SpreadOperator:LoginFragment.kt$LoginFragment.Selector$( if (client is LoginClient.WebView &amp;&amp; !isTV) { val button = ItemExtensionButtonBinding.inflate( layoutInflater, binding.loginToggleGroup, false ).root button.text = getString(R.string.webview) button.setIconResource(R.drawable.ic_language) button to { loginViewModel.changeFragment(LoginViewModel.FragmentType.WebView) } } else null, *(if (client is LoginClient.CustomInput) { val forms = runCatching { client.forms }.getOrNull().orEmpty() forms.mapIndexed { index, it -> val button = ItemExtensionButtonBinding.inflate( layoutInflater, binding.loginToggleGroup, false ).root button.text = it.label button.setIconResource(getIcon(it.icon)) button to { loginViewModel.changeFragment( LoginViewModel.FragmentType.CustomInput(index) ) } } } else listOf()).toTypedArray(), *(if (isTV &amp;&amp; client is DeezerExtension) { val button = ItemExtensionButtonBinding.inflate( layoutInflater, binding.loginToggleGroup, false ).root button.text = getString(R.string.tv_pairing_link_your_device) button.setIconResource(R.drawable.ic_login) listOf(button to { loginViewModel.changeFragment(LoginViewModel.FragmentType.SmartLogin) }) } else emptyList()).toTypedArray(), )</ID>
+    <ID>SpreadOperator:QualitySelectionBottomSheet.kt$QualitySelectionBottomSheet$(null, *track.backgrounds.toTypedArray())</ID>
+    <ID>SpreadOperator:QualitySelectionBottomSheet.kt$QualitySelectionBottomSheet$(null, *track.subtitles.toTypedArray())</ID>
+    <ID>SpreadOperator:StreamableMediaSource.kt$StreamableMediaSource$( *sources.mapIndexed { index, source -> getFactory(source).create(new, index, source) }.toTypedArray() )</ID>
+    <ID>SwallowedException:FragmentUtils.kt$FragmentUtils$e: Exception</ID>
+    <ID>SwallowedException:MaterialListPreference.kt$MaterialListPreference$e: ClassCastException</ID>
+    <ID>SwallowedException:OnExtensionSelectedTest.kt$OnExtensionSelectedTest$e: ClientException.LoginRequired</ID>
+    <ID>ThrowingExceptionsWithoutMessageOrCause:FeedLoadingAdapter.kt$FeedLoadingAdapter$IllegalStateException()</ID>
+    <ID>ThrowingExceptionsWithoutMessageOrCause:FeedSort.kt$IllegalStateException()</ID>
+    <ID>ThrowingExceptionsWithoutMessageOrCause:PlayerCallback.kt$PlayerCallback$IllegalStateException()</ID>
+    <ID>ThrowsCount:InstallationUtils.kt$InstallationUtils$suspend fun uninstallApp(activity: FragmentActivity, path: String)</ID>
+    <ID>TooGenericExceptionCaught:App.kt$App$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:AudioFocusListener.kt$AudioFocusListener$e: RuntimeException</ID>
+    <ID>TooGenericExceptionCaught:ContextUtils.kt$ContextUtils$e: RuntimeException</ID>
+    <ID>TooGenericExceptionCaught:ContextUtils.kt$ContextUtils$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:FragmentUtils.kt$FragmentUtils$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ImageUtils.kt$ImageUtils$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:LoginFragment.kt$LoginFragment.SmartLogin$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MediaStoreUtils.kt$MediaStoreUtils$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:PlayerCallback.kt$PlayerCallback$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:PlayerCallback.kt$PlayerCallback$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:PlayerRadio.kt$PlayerRadio$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:PlayerService.kt$PlayerService$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:PlayerService.kt$PlayerService.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:PlayerService.kt$PlayerService.SafeNotificationProvider$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:PrefsUtils.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:RawDataSource.kt$RawDataSource$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:TvPairingFragment.kt$TvPairingFragment$e: Exception</ID>
+    <ID>TooGenericExceptionThrown:AddViewModel.kt$AddViewModel$throw Exception("URL returned an HTML page, not a valid extension list")</ID>
+    <ID>TooGenericExceptionThrown:AppUpdater.kt$AppUpdater$throw Exception( "GitHub returned 304 for $user/$repo with no cached release" )</ID>
+    <ID>TooGenericExceptionThrown:AppUpdater.kt$AppUpdater$throw Exception("Failed to fetch latest release for $user/$repo", it)</ID>
+    <ID>TooGenericExceptionThrown:AppUpdater.kt$AppUpdater$throw Exception("Failed to fetch workflow ID", it)</ID>
+    <ID>TooGenericExceptionThrown:AppUpdater.kt$AppUpdater$throw Exception("Invalid Github URL: $updateUrl")</ID>
+    <ID>TooGenericExceptionThrown:AppUpdater.kt$AppUpdater$throw Exception("No APK file found in the zip")</ID>
+    <ID>TooGenericExceptionThrown:AppUpdater.kt$AppUpdater$throw Exception("No EApk assets found for $user/$repo")</ID>
+    <ID>TooGenericExceptionThrown:Downloader.kt$Downloader$throw Exception("${trackId}: No sources found")</ID>
+    <ID>TooGenericExceptionThrown:ExtensionLoader.kt$ExtensionLoader$throw Exception("Webview client is not available for ${metadata.type} Extensions")</ID>
+    <ID>TooGenericExceptionThrown:InstallationUtils.kt$InstallationUtils$throw Exception( "Failed to uninstall extension (resultCode=${result.resultCode}" + (status?.let { ", status=$it" } ?: "") + ")" )</ID>
+    <ID>TooGenericExceptionThrown:InstallationUtils.kt$InstallationUtils$throw Exception( when { status == INSTALL_FAILED_UPDATE_INCOMPATIBLE &amp;&amp; isSelf -> "Update failed — this build is signed with a different key than the " + "installed app. Installing it means uninstalling first, which erases " + "the app's data. $codes" status == INSTALL_FAILED_UPDATE_INCOMPATIBLE -> "Install failed — signed with a different key than the installed " + "version. Uninstall the existing extension first, then install again. $codes" status == INSTALL_FAILED_VERIFICATION_FAILURE -> "Install blocked by a security check — usually Play Protect " + "(Play Store → profile → Play Protect), though some devices add " + "their own app scan in Settings. $codes" status == INSTALL_FAILED_VERSION_DOWNGRADE -> "Install failed — the build offered is older than the one already " + "installed. $codes" status == INSTALL_FAILED_INSUFFICIENT_STORAGE -> "Install failed — not enough free storage on the device. $codes" else -> "Install failed $codes" } )</ID>
+    <ID>TooGenericExceptionThrown:LoadingTask.kt$LoadingTask$throw Exception("${track.title}: No servers found")</ID>
+    <ID>TooGenericExceptionThrown:LoadingTask.kt$LoadingTask$throw Exception("No files to download")</ID>
+    <ID>TooGenericExceptionThrown:StreamableDataSource.kt$StreamableDataSource$throw Exception("Source not opened")</ID>
+    <ID>TooGenericExceptionThrown:TestExtension.kt$TestExtension$throw Exception("Test exception for Podcasts tab")</ID>
+    <ID>TooGenericExceptionThrown:TestExtension.kt$TestExtension$throw Exception("Test exception for quality 3")</ID>
+    <ID>TooGenericExceptionThrown:UnifiedExtension.kt$UnifiedExtension.Companion$throw Exception("Extension $id not found")</ID>
+    <ID>TooManyFunctions:AndroidAutoCallback.kt$AndroidAutoCallback$Companion</ID>
+    <ID>TooManyFunctions:ApkLinkParser.kt$ApkLinkParser$CompressedXmlParser</ID>
+    <ID>TooManyFunctions:AppUpdater.kt$AppUpdater</ID>
+    <ID>TooManyFunctions:Cached.kt$Cached</ID>
+    <ID>TooManyFunctions:ContextUtils.kt$ContextUtils</ID>
+    <ID>TooManyFunctions:CrashKeys.kt$CrashKeys</ID>
+    <ID>TooManyFunctions:DownloadDao.kt$DownloadDao</ID>
+    <ID>TooManyFunctions:Downloader.kt$Downloader</ID>
+    <ID>TooManyFunctions:EffectsListener.kt$EffectsListener : Listener</ID>
+    <ID>TooManyFunctions:ExceptionUtils.kt$ExceptionUtils</ID>
+    <ID>TooManyFunctions:ExtensionUtils.kt$ExtensionUtils</ID>
+    <ID>TooManyFunctions:ExtensionsViewModel.kt$ExtensionsViewModel : ExtensionListViewModel</ID>
+    <ID>TooManyFunctions:FeedAdapter.kt$FeedAdapter : ScrollAnimPagingAdapterGridAdapter</ID>
+    <ID>TooManyFunctions:FeedSort.kt$dev.brahmkshatriya.echo.ui.feed.FeedSort.kt</ID>
+    <ID>TooManyFunctions:FormatUtils.kt$FormatUtils</ID>
+    <ID>TooManyFunctions:HorizontalListViewHolder.kt$HorizontalListViewHolder$Adapter : Adapter</ID>
+    <ID>TooManyFunctions:ImageUtils.kt$ImageUtils</ID>
+    <ID>TooManyFunctions:MediaHeaderAdapter.kt$MediaHeaderAdapter$Listener</ID>
+    <ID>TooManyFunctions:MediaItemUtils.kt$MediaItemUtils</ID>
+    <ID>TooManyFunctions:MediaMoreBottomSheet.kt$MediaMoreBottomSheet : BottomSheetDialogFragment</ID>
+    <ID>TooManyFunctions:MediaStoreUtils.kt$MediaStoreUtils</ID>
+    <ID>TooManyFunctions:OfflineExtension.kt$OfflineExtension : ExtensionClientHomeFeedClientTrackClientAlbumClientArtistClientPlaylistClientRadioClientLibraryFeedClientLikeClientPlaylistEditorListenerClientSearchFeedClientSettingsChangeListenerClient</ID>
+    <ID>TooManyFunctions:PixelFastScrollViewHelper.kt$PixelFastScrollViewHelper : ViewHelper</ID>
+    <ID>TooManyFunctions:PlayerCallback.kt$PlayerCallback : AndroidAutoCallback</ID>
+    <ID>TooManyFunctions:PlayerEventListener.kt$PlayerEventListener : Listener</ID>
+    <ID>TooManyFunctions:PlayerFragment.kt$PlayerFragment : Fragment</ID>
+    <ID>TooManyFunctions:PlayerRadio.kt$PlayerRadio : Listener</ID>
+    <ID>TooManyFunctions:PlayerRadio.kt$PlayerRadio$Companion</ID>
+    <ID>TooManyFunctions:PlayerService.kt$PlayerService : MediaLibraryService</ID>
+    <ID>TooManyFunctions:PlayerTrackAdapter.kt$PlayerTrackAdapter : ListAdapter</ID>
+    <ID>TooManyFunctions:PlayerUiListener.kt$PlayerUiListener : Listener</ID>
+    <ID>TooManyFunctions:PlayerViewModel.kt$PlayerViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:ResumptionUtils.kt$ResumptionUtils</ID>
+    <ID>TooManyFunctions:RulerAdapter.kt$RulerAdapter&lt;T> : Adapter</ID>
+    <ID>TooManyFunctions:ShufflePlayer.kt$ShufflePlayer : ForwardingPlayer</ID>
+    <ID>TooManyFunctions:TvAwareRecyclerView.kt$TvAwareRecyclerView : RecyclerView</ID>
+    <ID>TooManyFunctions:UiUtils.kt$UiUtils</ID>
+    <ID>TooManyFunctions:UiViewModel.kt$UiViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:UiViewModel.kt$UiViewModel$Companion</ID>
+    <ID>TooManyFunctions:UnifiedDatabase.kt$UnifiedDatabase : RoomDatabase</ID>
+    <ID>TooManyFunctions:UnifiedDatabase.kt$UnifiedDatabase$PlaylistDao</ID>
+    <ID>TooManyFunctions:UnifiedExtension.kt$UnifiedExtension : ExtensionClientMusicExtensionsProviderHomeFeedClientSearchFeedClientLibraryFeedClientPlaylistClientAlbumClientArtistClientTrackClientFollowClientRadioClientLikeClientSaveClientHideClientShareClientPlaylistEditClientPlaylistEditCoverClientLyricsClientTrackerMarkClient</ID>
+    <ID>TooManyFunctions:UnifiedExtension.kt$UnifiedExtension$Companion</ID>
+    <ID>UnusedParameter:AnimationUtils.kt$AnimationUtils$isMainFragment: Boolean</ID>
+    <ID>UnusedParameter:Cached.kt$Cached$app: App</ID>
+    <ID>UnusedParameter:Cached.kt$Cached$track: Track</ID>
+    <ID>UnusedParameter:FragmentUtils.kt$FragmentUtils$view: View? = null</ID>
+    <ID>UnusedParameter:GradientDrawable.kt$GradientDrawable$bottom: Int = 0</ID>
+    <ID>UnusedParameter:PlayerCallback.kt$PlayerCallback$stampNote: String</ID>
+    <ID>UnusedParameter:PlayerUiListener.kt$PlayerUiListener$caller: String = "poll"</ID>
+    <ID>UnusedPrivateProperty:PlayerUiListener.kt$PlayerUiListener$val trackDuration = viewModel.playerState.current.value?.track?.duration</ID>
+    <ID>UseCheckOrError:AutoClearedValue.kt$AutoClearedValue$throw IllegalStateException( "should never call auto-cleared-value get when it might not be available" )</ID>
+    <ID>UseCheckOrError:ExtensionsListBottomSheet.kt$ExtensionsListBottomSheet$throw IllegalStateException("Not supported")</ID>
+    <ID>UseCheckOrError:FeedLoadingAdapter.kt$FeedLoadingAdapter$throw IllegalStateException()</ID>
+    <ID>UseCheckOrError:FeedSort.kt$throw IllegalStateException()</ID>
+    <ID>UseCheckOrError:GridAdapter.kt$GridAdapter.Concat$throw IllegalStateException("No span size function found for adapter: ${adapter.javaClass.name}")</ID>
+    <ID>UseCheckOrError:InstallationUtils.kt$InstallationUtils$throw IllegalStateException("Invalid APK path or package name not found")</ID>
+    <ID>UseCheckOrError:InstallationUtils.kt$InstallationUtils$throw IllegalStateException("No file selected")</ID>
+    <ID>UseCheckOrError:PlayerCallback.kt$PlayerCallback$throw IllegalStateException()</ID>
+    <ID>UseCheckOrError:SaveToPlaylistViewModel.kt$SaveToPlaylistViewModel$throw IllegalStateException("Playlists not loaded")</ID>
+    <ID>UseCheckOrError:WebViewUtils.kt$WebViewUtils.WithAppbar$throw IllegalStateException("Invalid webview request")</ID>
+    <ID>UseRequire:MediaStoreUtils.kt$MediaStoreUtils$throw IllegalArgumentException("splitPath.size &lt; 2: $newPath")</ID>
+    <ID>VariableNaming:PixelFastScrollViewHelper.kt$PixelFastScrollViewHelper$/** Trace throttle in px. REMOVE WITH THE TRACE. */ private val DRAG_LOG_PX = 24</ID>
+  </CurrentIssues>
+</SmellBaseline>

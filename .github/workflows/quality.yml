@@ -1,0 +1,100 @@
+name: quality
+
+# Enforces the blocking gates from CONSTRAINTS.md. Anything here fails the build.
+# Coverage thresholds and release-only guards (verifyExtensionAbi,
+# verifyCleanKotlinOutput) stay out: they need minified release builds.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
+
+      # No android-actions/setup-android: v3 crashes installing the obsolete
+      # 'tools' package (sdkmanager exit 1). Runners ship an SDK but sdkmanager
+      # is not on PATH; use the full path. Installs only the platform and
+      # build-tools this project needs (mirrors local SDK).
+      - name: Android platform 37 + build tools
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null
+          # NOTE: the package path carries the minor version (android-37.0),
+          # plain android-37 does not exist in the repository.
+          "$SDKMANAGER" "platforms;android-37.0" "build-tools;36.0.0" "build-tools;37.0.0"
+
+      - name: detekt (zero errors, default config)
+        run: ./gradlew detekt
+
+      - name: unit tests + kover report
+        run: ./gradlew test koverXmlReport
+
+      - name: :common ABI unchanged or dump committed
+        run: ./gradlew :common:checkKotlinAbi
+
+      # Free the test step's daemons (4G Gradle + 4G Kotlin + kover workers):
+      # the 16G runner OOM-kills the next heavy resolution otherwise (silent exit 1).
+      - name: stop Gradle daemons to release memory
+        run: ./gradlew --stop
+
+      - name: dependency vulnerabilities (fail on high/critical)
+        run: |
+          ./gradlew cyclonedxBom
+          curl -sSL https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64 -o /tmp/osv-scanner
+          chmod +x /tmp/osv-scanner
+          # osv-scanner exits 1 when it finds anything: never let that abort the
+          # step before the severity filter below runs. Only >1 is a real failure.
+          /tmp/osv-scanner scan \
+            --sbom app/build/reports/cyclonedx/bom.json \
+            --sbom common/build/reports/cyclonedx/bom.json \
+            --sbom deezer-extension/ext/build/reports/cyclonedx/bom.json \
+            --format json > /tmp/osv.json || SCAN_EXIT=$?
+          if [ "${SCAN_EXIT:-0}" -gt 1 ]; then echo "osv-scanner failed ($SCAN_EXIT)"; exit 1; fi
+          python3 - <<'EOF'
+          import json, sys
+          bad = []
+          d = json.load(open("/tmp/osv.json"))
+          for r in d.get("results", []):
+              src = r.get("source", {}).get("path", "?")
+              for x in r.get("packages", []):
+                  p = x.get("package", {})
+                  for v in x.get("vulnerabilities", []):
+                      why = []
+                      for s in v.get("severity", []):
+                          if s.get("type") == "CVSS_V3":
+                              try:
+                                  if float(s["score"]) >= 7.0:
+                                      why.append("CVSS_V3 %s" % s["score"])
+                              except ValueError:
+                                  pass
+                      if v.get("database_specific", {}).get("severity", "").upper() in ("HIGH", "CRITICAL"):
+                          why.append(v["database_specific"]["severity"])
+                      if why:
+                          bad.append("%s %s (%s) in %s" % (p.get("name"), p.get("version"), ", ".join(why), src))
+          if bad:
+              print("HIGH/CRITICAL vulnerabilities:")
+              print("\n".join("  - " + b for b in bad))
+              sys.exit(1)
+          print("osv gate: no high/critical vulnerabilities")
+          EOF
+
+      - name: no new secrets (known findings pinned in baseline)
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz -o /tmp/gitleaks.tgz
+          tar -xzf /tmp/gitleaks.tgz -C /tmp gitleaks
+          /tmp/gitleaks detect --redact --no-banner --baseline-path .gitleaksbaseline

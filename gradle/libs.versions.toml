@@ -112,6 +112,10 @@ kotlinx = ["kotlinx-serialization-json", "kotlinx-coroutines-core"]
 firebase = ["firebase-analytics", "firebase-crashlytics"]
 
 [plugins]
+# Quality gates (see CONSTRAINTS.md): kover measures line coverage for the coverage dimension,
+# cyclonedx generates the SBOM that osv-scanner scans for the dependency-vulnerability dimension.
+kover = { id = "org.jetbrains.kotlinx.kover", version = "0.9.9" }
+cyclonedx = { id = "org.cyclonedx.bom", version = "3.4.1" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-kmp-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

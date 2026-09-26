@@ -1,0 +1,13 @@
+# Gitleaks config for Evoe. Extends the default ruleset; the stanzas below only
+# narrow scan scope. Known findings (E1 Deezer Blowfish fragment, E2 historic
+# Firebase keys) are pinned in .gitleaksbaseline for history scans.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "generated build outputs are never secrets"
+paths = ['''build/''', '''\.gradle/''', '''\.kotlin/''']
+
+[[allowlists]]
+description = "local google-services.json: Firebase API keys ship inside every APK by design (restricted in console, not secret); file is gitignored and never committed"
+paths = ['''app/google-services\.json''']

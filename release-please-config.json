@@ -1,0 +1,11 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "include-component-in-tag": false,
+      "include-v-in-tag": true,
+      "changelog-type": "github"
+    }
+  },
+  "$schema": "https://schema.release-please.xyz/schema.json"
+}
