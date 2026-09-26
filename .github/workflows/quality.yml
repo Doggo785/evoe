@@ -47,6 +47,11 @@ jobs:
       - name: :common ABI unchanged or dump committed
         run: ./gradlew :common:checkKotlinAbi
 
+      # Free the test step's daemons (4G Gradle + 4G Kotlin + kover workers):
+      # the 16G runner OOM-kills the next heavy resolution otherwise (silent exit 1).
+      - name: stop Gradle daemons to release memory
+        run: ./gradlew --stop
+
       - name: dependency vulnerabilities (fail on high/critical)
         run: |
           ./gradlew cyclonedxBom
