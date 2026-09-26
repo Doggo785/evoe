@@ -199,27 +199,17 @@ sealed class PagedData<T : Any> {
             return Concat(*sources.map { it.map(block) }.toTypedArray())
         }
 
-        private fun splitContinuation(continuation: String?): Pair<Int, String?> {
-            if (continuation == null) return 0 to null
-            val index = continuation.substringBefore("_").toIntOrNull() ?: -1
-            val token = continuation.substringAfter("_")
-            return index to token
-        }
-
-        private fun combine(index: Int, token: String?): String {
-            return "${index}_${token ?: ""}"
-        }
-
         override suspend fun loadListInternal(continuation: String?): Page<T> {
-            val (index, token) = splitContinuation(continuation)
+            val (index, token) = ConcatContinuation.split(continuation)
             val source = sources.getOrNull(index) ?: return Page(emptyList(), null)
             val page = source.loadPage(token)
-            return if (page.continuation != null) Page(page.data, combine(index, page.continuation))
-            else Page(page.data, combine(index + 1, null))
+            return if (page.continuation != null)
+                Page(page.data, ConcatContinuation.combine(index, page.continuation))
+            else Page(page.data, ConcatContinuation.combine(index + 1, null))
         }
 
         override fun invalidate(continuation: String?) {
-            val (index, token) = splitContinuation(continuation)
+            val (index, token) = ConcatContinuation.split(continuation)
             val source = sources.getOrNull(index)
             source?.invalidate(token)
         }
@@ -258,4 +248,26 @@ sealed class PagedData<T : Any> {
     companion object {
         fun <T : Any> empty() = Single<T> { emptyList() }
     }
+}
+
+/**
+ * The encoding behind [PagedData.Concat] continuation tokens: `"<index>_<token>"`.
+ *
+ * The token is opaque to the app — only Concat produces it and only Concat reads it back — so this stays
+ * internal: [split] answers "which source serves the next page, and with what token", [combine] writes that
+ * answer back. An empty token is the encoding of `null`, which is what a source must receive for its own
+ * first page; [split] normalises it back so a source is never handed `""` where it expects `null`.
+ */
+internal object ConcatContinuation {
+
+    /** @return the source index and the token for it, or index `-1` when the token addresses no source. */
+    fun split(continuation: String?): Pair<Int, String?> {
+        if (continuation == null) return 0 to null
+        val index = continuation.substringBefore("_").toIntOrNull() ?: -1
+        val token = continuation.substringAfter("_")
+        return index to token.takeIf { it.isNotEmpty() }
+    }
+
+    /** @return the `"<index>_<token>"` form of [continuation] for the source at [index]. */
+    fun combine(index: Int, token: String?): String = "${index}_${token ?: ""}"
 }

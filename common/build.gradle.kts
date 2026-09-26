@@ -101,6 +101,15 @@ kotlin {
                 api(libs.protobuf.java)
             }
         }
+        // Tests live in jvmTest, not commonTest: the decision logic here is pure JVM (runBlocking to drive
+        // the suspend loaders), and :common has no android unit-test task at all, so commonTest sources would
+        // only ever run on the jvm target anyway. CI runs them through `:common:jvmTest`.
+        jvmTest {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.junit)
+            }
+        }
     }
 }
 
