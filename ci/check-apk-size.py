@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""Report the release APK size and fail when it grew past apk-size.json.
+
+Paths resolve against the repository root, so the script runs from anywhere.
+CI calls it as the last step of the release-size job in quality.yml; the same
+file is what a local run reads, there is no second copy of the rule.
+
+Exit codes:
+  0  within threshold, or any run outside CI (local builds measure a couple of
+     percent above the CI baseline, so CI is the only place that enforces)
+  1  over the limit while running in CI
+  2  no APK, or several: the assembleRelease step did not produce one apk;
+     or ci/apk-size.json carries a "bytes" baseline that is not a positive
+     integer (a zero baseline would divide by zero further down)
+"""
+
+import glob
+import json
+import os
+import sys
+import zipfile
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+CONFIG = os.path.join(HERE, "apk-size.json")
+
+
+def main() -> int:
+    with open(CONFIG, encoding="utf-8") as fh:
+        cfg = json.load(fh)
+
+    raw_baseline = cfg.get("bytes")
+    try:
+        baseline = int(raw_baseline)
+    except (TypeError, ValueError):
+        print(
+            "release-size: \"bytes\" in ci/apk-size.json must be an integer, got %r"
+            % (raw_baseline,)
+        )
+        return 2
+    if baseline <= 0:
+        print(
+            "release-size: \"bytes\" in ci/apk-size.json must be greater than zero, got %d"
+            % baseline
+        )
+        return 2
+
+    percent = float(cfg["threshold_percent"])
+    limit = int(baseline * (1 + percent / 100))
+
+    apks = sorted(glob.glob(os.path.join(ROOT, cfg["apk_glob"])))
+    if len(apks) != 1:
+        print(
+            "release-size: expected exactly 1 apk matching %s, found %d"
+            % (cfg["apk_glob"], len(apks))
+        )
+        for apk in apks:
+            print("  - " + apk)
+        print("Did the assembleRelease step run and finish green?")
+        return 2
+
+    size = os.path.getsize(apks[0])
+    delta = size - baseline
+    print("release apk: %s (%s bytes)" % (os.path.basename(apks[0]), format(size, ",")))
+    print(
+        "baseline:    %s bytes, measured %s on %s (ci/apk-size.json)"
+        % (format(baseline, ","), cfg["measured_at"], cfg["commit"])
+    )
+    print(
+        "limit:       %s bytes (+%g%%, headroom %s bytes)"
+        % (format(limit, ","), percent, format(limit - baseline, ","))
+    )
+    print("delta:       %+d bytes (%+.2f%%)" % (delta, 100.0 * delta / baseline))
+
+    with zipfile.ZipFile(apks[0]) as zf:
+        biggest = sorted(
+            ((info.compress_size, info.filename) for info in zf.infolist()), reverse=True
+        )[:5]
+    print("largest entries (compressed):")
+    for entry_size, name in biggest:
+        print("  %10s  %s" % (format(entry_size, ","), name))
+
+    in_ci = os.environ.get("GITHUB_ACTIONS") == "true"
+    if size > limit and in_ci:
+        print()
+        print("FAIL: the release APK is %s bytes over the limit." % format(size - limit, ","))
+        print("If the growth is intended, raise \"bytes\" in ci/apk-size.json to %d" % size)
+        print("and explain the growth in the commit message.")
+        print("If app/google-services.json is present, this build packs Firebase on purpose")
+        print("and runs ~7% heavier than the baseline: that file is gitignored, so CI never")
+        print("has it. The baseline is the CI build.")
+        return 1
+
+    if size > limit:
+        print()
+        print("over the limit, but this is not CI: informational only. Local builds measured")
+        print("2.06% above this baseline on 2026-09-27 (local OpenJDK 26 daemon versus CI")
+        print("Temurin 17), and a build with app/google-services.json is ~7% above that.")
+        print("CI is where the rule runs, read the release-size job for the verdict.")
+        return 0
+
+    print("within threshold")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
