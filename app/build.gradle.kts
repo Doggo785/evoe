@@ -67,20 +67,50 @@ val lastFmApiKey: String = run {
 val gitHash = runCatching { execute("git", "rev-parse", "HEAD").take(7) }.getOrDefault("dev")
 val gitCount = runCatching { execute("git", "rev-list", "--count", "HEAD").toInt() }.getOrDefault(1)
 val isDirty = runCatching { execute("git", "status", "--porcelain", "-uno").isNotEmpty() }.getOrDefault(false)
-// "3.1." prefix + zero-padded gitCount so versionName sorts NUMERICALLY as a string in Firebase Crashlytics
-// Release Monitoring (which orders the version picker lexicographically). Two things this fixes:
-//  • the 3→4 digit lexicographic break ("1000" < "999"): padStart(5,'0') → "01024" > "00999" as strings;
-//  • the frozen un-padded 3.0.xxx history: bumping the prefix to 3.1. sorts every new build above all old
-//    "3.0.###" entries at once (they can't be re-padded retroactively).
-// versionCode stays the raw gitCount (Android requires an Int; it's already monotonic). Display stays tied
-// to the count: "3.1.01024" == count 1024, just padded.
-val version = "3.1." + gitCount.toString().padStart(5, '0')
+// ── RELEASE VERSION READS version.txt, THE FILE RELEASE-PLEASE OWNS. release-please (release-type:
+// simple) rewrites version.txt on every release PR, so merging that PR is what moves the version;
+// this script only reads it. The read goes through providers.fileContents because that is the
+// configuration-cache-aware API (same reasoning as providers.environmentVariable() above). It fails
+// loudly at configuration time when the file is missing, blank, or not x.y.z: a build silently
+// carrying a version no release will ever match is the exact failure this replaces — the gitCount
+// scheme could never equal a SemVer tag, so the updater's tag comparison never had a chance to say
+// "you are up to date".
+//
+// ⚠️ version.txt MUST STAY IN THE REPO. The simple strategy updates it with createIfMissing: false
+// (checked in release-please source, 2026-09-27): if it disappears, releases keep getting cut while
+// the version here silently stops moving. Seed it by hand if that ever happens.
+//
+// versionCode stays the raw gitCount (Android requires an Int; it must stay monotonic or sideloaded
+// in-place upgrades stop). The commit count still appears in versionName as the hash/count suffix,
+// it just no longer IS the version.
+//
+// ⚠️ CRASHLYTICS RELEASE MONITORING ORDERS ITS VERSION PICKER LEXICOGRAPHICALLY, AND SEMVER BREAKS
+// THAT — ACCEPTED 2026-09-27. The old scheme padded the version ("3.1.01024") precisely so string
+// order matched numeric order; SemVer cannot be padded, so "3.1.10" sorts below "3.1.9" once a
+// component reaches two digits. Accepted because the displayed version has to equal the release tag
+// the in-app updater compares against (AppUpdater), and a picker ordering quirk is the cheaper side
+// of that trade. Re-padding versionName would "fix" the picker by re-breaking the tag match — do not.
+// When it actually hurts: read the picker top to bottom, or filter Crashlytics queries by app version.
+val versionRaw = providers.fileContents(rootProject.layout.projectDirectory.file("version.txt"))
+    .asText.orNull?.trim()?.takeIf(String::isNotEmpty)
+    ?: error(
+        "version.txt is missing or blank at the repo root. It holds the release version " +
+            "(plain x.y.z, no leading v); release-please rewrites it on every release PR. " +
+            "Restore it (e.g. '3.2.0') if it ever disappears."
+    )
+require(versionRaw.matches(Regex("""\d+\.\d+\.\d+"""))) {
+    "version.txt must hold a plain x.y.z version, got '$versionRaw'."
+}
+val version = versionRaw
 
 // ── APK FILENAME CARRIES THE VARIANT. AGP names an APK "<archivesName>-<variantName>.apk", so setting
-// archivesName here yields Gladix-v3.1.NNNNN-release.apk and Gladix-v3.1.NNNNN-debug.apk. The version is
-// already in the name; what was missing is the VARIANT, and its absence is what let a debug build be
-// uploaded to GitHub for months without it being visible on the releases page — a renamed debug APK and a
-// renamed release APK looked identical there. With the marker, the wrong artifact announces itself.
+// archivesName here yields Evoe-v3.2.0-release.apk and Evoe-v3.2.0-debug.apk. The version in the name
+// comes from version.txt, so it is STABLE WITHIN A RELEASE (it changed on every commit under the old
+// gitCount scheme); within one release every build overwrites the same file, which is fine because the
+// released artifact is uploaded with --clobber (one APK per release anyway). What the name still needs
+// to carry is the VARIANT: a renamed debug APK and a renamed release APK are otherwise identical on the
+// releases page, which is what let a debug build be uploaded to GitHub for months without anyone seeing
+// it. With the marker, the wrong artifact announces itself.
 //
 // `base { archivesName }` rather than rewriting variant.outputs: the output-renaming API needs
 // VariantOutputImpl, which is AGP-internal and a poor bet on 9.3.2. This is the supported lever and it
