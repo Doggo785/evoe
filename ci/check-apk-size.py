@@ -9,7 +9,9 @@ Exit codes:
   0  within threshold, or any run outside CI (local builds measure a couple of
      percent above the CI baseline, so CI is the only place that enforces)
   1  over the limit while running in CI
-  2  no APK, or several: the assembleRelease step did not produce one apk
+  2  no APK, or several: the assembleRelease step did not produce one apk;
+     or ci/apk-size.json carries a "bytes" baseline that is not a positive
+     integer (a zero baseline would divide by zero further down)
 """
 
 import glob
@@ -27,7 +29,22 @@ def main() -> int:
     with open(CONFIG, encoding="utf-8") as fh:
         cfg = json.load(fh)
 
-    baseline = int(cfg["bytes"])
+    raw_baseline = cfg.get("bytes")
+    try:
+        baseline = int(raw_baseline)
+    except (TypeError, ValueError):
+        print(
+            "release-size: \"bytes\" in ci/apk-size.json must be an integer, got %r"
+            % (raw_baseline,)
+        )
+        return 2
+    if baseline <= 0:
+        print(
+            "release-size: \"bytes\" in ci/apk-size.json must be greater than zero, got %d"
+            % baseline
+        )
+        return 2
+
     percent = float(cfg["threshold_percent"])
     limit = int(baseline * (1 + percent / 100))
 
