@@ -49,6 +49,32 @@ Lire avant d'ecrire du code. Ne jamais affaiblir ce fichier pour faire passer un
 
 Regle de cout : tout ce qui depasse quelques secondes sort de la boucle d'edition. On scope au diff : couverture des lignes touchees, pas du repo.
 
+## Preuves (les gates mordent)
+
+Rejouees le 2026-09-27 dans un arbre propre, sur le contenu de `main` (premiere fois le 2026-09-26).
+Methode, la meme pour les trois : injection temporaire, constat observe, revert, retour a la normale.
+
+| Gate | Injection | Constat observe | Retour a la normale |
+|---|---|---|---|
+| detekt | `throw Exception("probe")` ajoute a la fin de `deezer-extension/ext/src/main/java/dev/brahmkshatriya/echo/extension/Utils.kt` | `./gradlew detekt` FAILED : `Utils.kt:115:38 [TooGenericExceptionThrown]` | `git checkout -- <fichier>` puis BUILD SUCCESSFUL |
+| gitleaks | `probeSecret = SECRET = "..."` dans un fichier ajoute avec `git add -f` (`/*.txt` est ignore) puis committe | `gitleaks detect --redact --no-banner --baseline-path .gitleaksbaseline` : exit 1, `leaks found: 1`. Sans baseline : exit 1, `leaks found: 2` (E1 + probe) | probe retire, `no leaks found`, exit 0 |
+| osv | `includeConfigs.set(...)` retire de `build.gradle.kts`, puis `./gradlew cyclonedxBom` | 689 composants au lieu de 275, filtre exit 1 avec 12 HIGH/CRITICAL (bcprov 1.79 et 1.84, freemarker 2.3.32, jackson-core et databind 2.15.3) | `git checkout -- build.gradle.kts`, 275 composants, `no high/critical vulnerabilities`, exit 0 |
+
+Ce que la lecture seule ne donne pas :
+
+- `gitleaks detect` ne lit que l'historique git : un fichier modifie sans commit n'est jamais vu, d'ou le
+  commit de probe. La boucle EDIT (`gitleaks protect --staged`) couvre l'inverse, le staged, pas l'historique.
+- Version locale 8.30.1, la meme que celle pinnee dans `quality.yml`.
+- Un scan complet sans baseline ne rend qu'un seul constat, E1 sur `Utils.kt` (fingerprint `fc414e36:14`,
+  la constante est en ligne 15 dans l'arbre actuel), pas les 4 du baseline : les 3 `gcp-api-key` d'E2 sont
+  ecrases avant toute question de baseline par l'allowlist de chemin `app/google-services\.json` de
+  `.gitleaks.toml`. E2 documente l'historique, il ne sert plus a filtrer.
+- Des cles de synthese `AKIA...` ou `ghp_...` ne declenchent rien avec cette config ; `SECRET = "..."` et
+  `api_key = "..."` declenchent `generic-api-key`, `AIza...` declenchent `gcp-api-key`. Un probe qui veut
+  prouver le rouge part de la.
+- osv-scanner local 2.6.0, la version pinnee dans `quality.yml` ; le filtre est celui de `quality.yml`,
+  extrait ligne a ligne plutot que retape.
+
 ## Garde du plancher (adaptation Kotlin du reference `floor-guard.md`)
 
 Sur le diff merge-base...HEAD (lignes ajoutees + retirees + fichiers untracked), signaler :

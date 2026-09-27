@@ -21,10 +21,11 @@ plugins {
 // fallback is to add `alias(libs.plugins.detekt)` to each module's own plugins{} block instead.
 subprojects {
     apply(plugin = "io.gitlab.arturbosch.detekt")
-    // Detekt baseline: pins the 39 pre-existing TooGenericExceptionThrown findings in
-    // :deezer-extension (main is red without it). Rules stay default, no detekt.yml:
-    // only NEW findings fail the build. Refresh after an intended fix with
-    // `./gradlew detektBaseline`, then commit the diff alongside the fix.
+    // Detekt baseline: pins a module's pre-existing findings so only NEW findings fail the
+    // build. Counts: :app 840 entries, :deezer-extension 162, of which 36 are
+    // TooGenericExceptionThrown (17 in :app, 19 in :deezer-extension). Rules stay default,
+    // no detekt.yml. Refresh after an intended fix with `./gradlew detektBaseline`, then
+    // commit the diff alongside the fix.
     extensions.configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
         baseline = file("detekt-baseline.xml")
     }
