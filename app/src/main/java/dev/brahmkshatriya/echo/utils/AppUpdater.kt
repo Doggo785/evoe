@@ -237,11 +237,12 @@ object AppUpdater {
                 // one of ours.
                 //
                 // ⚠️ WHAT THE GITHUB RELEASE MUST LOOK LIKE, since getGithubUpdateUrl matches on it:
-                //   TAG   must equal versionName.substringBefore('_'), i.e. "v3.1.NNNNN" zero-padded to 5
-                //         digits (build.gradle.kts: version = "3.1." + gitCount.padStart(5,'0'),
-                //         versionName = "v${'$'}version_${'$'}gitHash(${'$'}gitCount)"). A tag that differs in ANY
-                //         way — no "v", unpadded count, a suffix — compares unequal and offers an update
-                //         forever; a tag equal to the running version correctly offers nothing.
+                //   TAG   must equal versionName.substringBefore('_'): versionName is "v" + version.txt +
+                //         "_hash(count)" (build.gradle.kts), so the prefix is version.txt with its v — a
+                //         plain SemVer tag like "v3.2.0", which is exactly what release-please writes.
+                //         This arm passes semver = true: a HIGHER tag offers the update, an equal or
+                //         lower one offers nothing, and a tag that does not parse falls back to plain
+                //         string inequality (see getGithubUpdateUrl and SemVer.shouldOffer).
                 //   ASSET must be a file ending ".apk". Assets are sorted so a name CONTAINING the device's
                 //         Build.SUPPORTED_ABIS.first() (e.g. "arm64-v8a") wins; with a single universal
                 //         APK the sort is a no-op and it is picked anyway.
@@ -250,7 +251,7 @@ object AppUpdater {
                 "release" -> {
                     val currentVersion = version.substringBefore('_')
                     val updateUrl = "https://api.github.com/repos/$githubRepo/releases"
-                    getGithubUpdateUrl(currentVersion, updateUrl, client, app.context)
+                    getGithubUpdateUrl(currentVersion, updateUrl, client, app.context, semver = true)
                         ?: return null
                 }
 
@@ -259,7 +260,7 @@ object AppUpdater {
                 "stable" -> {
                     val currentVersion = version.substringBefore('_')
                     val updateUrl = "https://api.github.com/repos/$githubRepo/releases"
-                    getGithubUpdateUrl(currentVersion, updateUrl, client, app.context)
+                    getGithubUpdateUrl(currentVersion, updateUrl, client, app.context, semver = true)
                         ?: return null
                 }
 
@@ -602,6 +603,10 @@ object AppUpdater {
         // Enables ETag caching. Optional so AddViewModel's one-off add flow needs no change; every
         // looping caller SHOULD pass it, since the loop is what spends the quota.
         context: Context? = null,
+        // OPT-IN SemVer comparison. Default false keeps plain string inequality — correct for the
+        // extension callers and for AddViewModel's "" sentinel (see the comparison note below). The
+        // APP update path (the release/stable arms in updateApp) is the only caller that passes true.
+        semver: Boolean = false,
     ) = run {
         // Every message below names the repo. This function has TWO callers — updateApp (the APP
         // update, repo = app_github_repo) and getUpdateFileUrl (the EXTENSION update, repo = that
@@ -654,47 +659,55 @@ object AppUpdater {
             if (it is GithubRateLimitException) throw it
             throw Exception("Failed to fetch latest release for $user/$repo", it)
         }
-        // ⚠️ STRING INEQUALITY, AND IT MUST STAY THAT WAY — THIS FUNCTION IS SHARED BY THREE CALLERS WITH
-        // THREE DIFFERENT NOTIONS OF "version". Verified 2026-09-05:
+        // ⚠️ TWO COMPARISON MODES, AND STRING INEQUALITY IS STILL THE DEFAULT — THIS FUNCTION IS SHARED
+        // BY THREE CALLERS WITH THREE DIFFERENT NOTIONS OF "version". Verified 2026-09-05:
         //   updateApp (APP update)            -> currentVersion = versionName.substringBefore('_'),
-        //                                        i.e. "v3.1.NNNNN", our 5-digit zero-padded gitCount.
-        //   ExtensionsViewModel:282 (EXT)     -> the installed extension's own version string.
-        //   AddViewModel:116 (ADD EXTENSION)  -> "" — a SENTINEL meaning "no current version, take
+        //                                        i.e. "v3.2.0": the version.txt value with its v.
+        //   ExtensionsViewModel (EXT)         -> the installed extension's own version string.
+        //   AddViewModel (ADD EXTENSION)      -> "" — a SENTINEL meaning "no current version, take
         //                                        whatever is latest". With "", any non-empty tag compares
         //                                        unequal, which is exactly the intent.
         //
-        // ⚠️ THE TRAP: a "parse the number and require strictly greater" rule looks like an obvious
-        // improvement here and CANNOT go in this function. Extension tags are authored by third parties in
-        // arbitrary shapes ("1.2.3", "v0.9-beta", a date) — none of them parse as our scheme, so a numeric
-        // rule would refuse every extension update. And it would turn AddViewModel's "" sentinel from
-        // "take latest" into "never offer anything", breaking the add-extension flow outright. If a numeric
-        // constraint is ever wanted for the APP path, it belongs behind an OPT-IN parameter defaulting to
-        // "no constraint", never as a change to this comparison.
+        // The APP path passes semver = true — the OPT-IN parameter this function's own note prescribed
+        // on 2026-09-05, implemented 2026-09-27 in SemVer.shouldOffer. It parses tag and current as
+        // x.y.z and offers only a STRICTLY HIGHER tag: equal offers nothing even when the two spellings
+        // differ ("3.2.0" vs "v3.2.0" loops forever under plain !=), lower offers nothing. Either side
+        // unparseable falls back to the string comparison, never to "no update".
         //
-        // Considered and deliberately NOT done (2026-09-05): `!=` also offers a LOWER tag, i.e. a
-        // downgrade. Left alone because the OS refuses a lower versionCode at install time, so the live
-        // cost is one spurious prompt and a failed install — the same cost as the mis-tag case below, and
-        // not worth constraining a shared function for.
+        // ⚠️ WHY THE DEFAULT CANNOT BECOME THE OPT-IN: extension tags are authored by third parties in
+        // arbitrary shapes ("1.2.3", "v0.9-beta", a date) — none of them parse as our scheme, so a
+        // numeric rule would refuse every extension update. And a parsing rule must never turn
+        // AddViewModel's "" sentinel from "take latest" into "never offer anything", breaking the
+        // add-extension flow outright. Both properties are pinned by SemVerTest.
+        //
+        // DOWNGRADE: the APP path stopped offering one with the opt-in (strictly greater); the
+        // extension paths still do via !=, unchanged since 2026-09-05 — the OS refuses a lower
+        // versionCode at install time, so the live cost is one spurious prompt and a failed install.
         //
         // NOTE this compares the TAG against the RUNNING BUILD, never against the asset. A release whose
-        // tag disagrees with its own APK's versionName is offered, installs as a permitted same-code
-        // reinstall, and is then offered again on every check — a loop that no client-side rule here can
-        // detect, ending only when a later release whose tag matches its binary supersedes it.
-        // ⚠️ NOTHING CHECKS THAT THEY AGREE — not here, not at build time, not at upload. The only thing
-        // working against it is that the APK filename now carries its own build number and variant
-        // (`base { archivesName }` in app/build.gradle.kts), so tagging a release is COPYING a number off
-        // the filename rather than recalling it. Whether the tag and the filename actually match is still
-        // an unchecked manual step.
-        if (res.tagName != currentVersion) {
-            res.assets.sortedByDescending {
-                it.name.contains(Build.SUPPORTED_ABIS.first())
-            }.firstOrNull {
-                it.name.endsWith("apk")
-            }?.browserDownloadUrl ?: throw Exception("No EApk assets found for $user/$repo")
+        // tag is higher than its own APK's versionName still installs as a permitted same-code reinstall
+        // and is then offered again on every check — no rule HERE can prevent that, because the running
+        // build never sees the asset's versionName. The opt-in does close the subcases it can see: a tag
+        // equal to (or lower than) the running version stops being offered, including spelling-only
+        // differences. ⚠️ FULL TAG-vs-APK AGREEMENT IS NOT CHECKED ON THIS PATH — it belongs at release
+        // time, next to the upload, not in the client.
+        if (SemVer.shouldOffer(res.tagName, currentVersion, semver)) {
+            pickApkAsset(res, user, repo)
         } else {
             null
         }
     }
+
+    // Picks the APK the user downloads: prefer an asset named for the device's primary ABI (e.g.
+    // "arm64-v8a"); with a single universal APK the sort is a no-op and it is picked anyway.
+    // Extracted from getGithubUpdateUrl when the semver parameter landed (2026-09-27) purely to keep
+    // that function under detekt's CyclomaticComplexMethod threshold — no behavior change.
+    private fun pickApkAsset(res: GithubReleaseResponse, user: String, repo: String): String =
+        res.assets.sortedByDescending {
+            it.name.contains(Build.SUPPORTED_ABIS.first())
+        }.firstOrNull {
+            it.name.endsWith("apk")
+        }?.browserDownloadUrl ?: throw Exception("No EApk assets found for $user/$repo")
 
     private suspend fun getGithubWorkflowId(
         hash: String,
