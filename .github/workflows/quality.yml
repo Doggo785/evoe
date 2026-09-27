@@ -103,3 +103,38 @@ jobs:
           curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz -o /tmp/gitleaks.tgz
           tar -xzf /tmp/gitleaks.tgz -C /tmp gitleaks
           /tmp/gitleaks detect --redact --no-banner --baseline-path .gitleaksbaseline
+
+  # Own runner on purpose: a release build runs R8 plus the verifyExtensionAbi
+  # and verifyCleanKotlinOutput guards, which is another 4G on top of the test
+  # and cyclonedx workers. On the shared 16G runner that is an OOM kill, the
+  # same reason gates stops its daemons mid-job.
+  # Not a required status check: branch protection asks for gates and lint-title
+  # only, so this reports growth without blocking a merge on its own.
+  release-size:
+    name: release apk size (fail above baseline +2%)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: versionCode and versionName come from
+          # `git rev-list --count HEAD`, a shallow clone would report 1.
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
+
+      - name: Android platform 37 + build tools
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null
+          "$SDKMANAGER" "platforms;android-37.0" "build-tools;36.0.0" "build-tools;37.0.0"
+
+      - name: release apk (R8 + ABI and clean-output guards)
+        run: ./gradlew :app:assembleRelease
+
+      # No google-services.json here either, so the APK matches the baseline in
+      # ci/apk-size.json: gitignored locally too, absent from every checkout.
+      - name: size within threshold of ci/apk-size.json
+        run: python3 ci/check-apk-size.py

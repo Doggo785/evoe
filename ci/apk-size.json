@@ -1,0 +1,8 @@
+{
+  "bytes": 9299727,
+  "threshold_percent": 2,
+  "apk_glob": "app/build/outputs/apk/release/*.apk",
+  "measured_at": "2026-09-27",
+  "commit": "ee92ccf2",
+  "note": "Measured without app/google-services.json, which is gitignored: CI never has it, so Firebase stays compileOnly and out of the APK. The same tree built locally with that file present measures 9998692 bytes (+698965, +7.5%), because app/build.gradle.kts switches libs.bundles.firebase from compileOnly to implementation once the file parses. The filename is not recorded on purpose: versionName carries the git commit count, so it changes every commit."
+}

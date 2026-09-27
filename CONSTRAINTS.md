@@ -27,12 +27,7 @@ Lire avant d'ecrire du code. Ne jamais affaiblir ce fichier pour faire passer un
 | ABI minifiee | `verifyExtensionAbi` vert | `./gradlew :app:assembleRelease` (le garde est en finalizer de `minify*WithR8`) | CI / avant release | R8 a deja casse toutes les extensions tierces d'un coup ; le garde echoue au build au lieu du terrain |
 | Sortie Kotlin propre | `verifyCleanKotlinOutput` vert | dependance de `assembleRelease` | CI | Code inline stale apres changement d'une fonction inline publique |
 | Hygiene deps | Nouvelles deps via `gradle/libs.versions.toml` uniquement, Coil >= 3.6.0 | revue + `./gradlew build` | revue | Sous Coil 3.6.0, R8 fusionne `GenericViewTarget` et l'artwork sort vierge en builds minifies uniquement |
-
-## Mesure, pas encore applique
-
-| Metrique | Aujourd'hui | Direction |
-|---|---|---|
-| Taille APK release | non mesurée, bloquée par `:common:checkKotlinAbi` (voir rapport 2026-09-26 : dump ABI stale depuis `55a49365`) | ne doit pas croitre |
+| Taille APK release | APK release <= 9 485 721 octets (baseline 9 299 727 dans `ci/apk-size.json`, seuil +2% = 185 994 octets de marge, mesuree 2026-09-27 sur `ee92ccf2`) | job CI `release-size` de `quality.yml` : `./gradlew :app:assembleRelease` puis `python3 ci/check-apk-size.py` | CI | La taille se lit en octets, pas en impression, et une croissance devient un echec. Mesuree dans les conditions de la CI : sans `google-services.json` (gitignore, absent de tout checkout) Firebase reste `compileOnly` et ne part pas dans l'APK, alors que le meme arbre construit avec le fichier pese 9 998 692 octets (+698 965, +7,5%, `implementation(libs.bundles.firebase)` dans `app/build.gradle.kts`). Le +2% absorbe le bruit de versionName (compteur de commits, ~4 octets par commit) ; au-dela c'est une vraie croissance. Pour relever la baseline : ecrire le nouveau nombre dans `ci/apk-size.json` et dire pourquoi dans le commit. Job non requis dans la protection de branche (decision 2026-09-27) : `gates` et `lint-title` restent les seuls blocants, celui-ci signale |
 
 ## Abandonne explicitement (pas de check invente)
 
