@@ -336,7 +336,10 @@ class PlayerTrackAdapter(
                 onDelivered = { drawable ->
                     if (pendingMediaId == boundId) {
                         coverDrawable = drawable
-                        lastBoundMediaId = boundId
+                        // Latch only on a real delivery: a null drawable still reaches this
+                        // callback, and latching on it marks the id done while nothing painted,
+                        // so the next bind of the same id is declined and the page stays blank.
+                        if (drawable != null) lastBoundMediaId = boundId
                     }
                 }
             ) {
@@ -375,7 +378,8 @@ class PlayerTrackAdapter(
                     onDelivered = { drawable ->
                         if (pendingMediaId == boundId) {
                             coverDrawable = drawable
-                            lastBoundMediaId = boundId
+                            // Same rule as the retry path above.
+                            if (drawable != null) lastBoundMediaId = boundId
                         }
                     }
                 ) {
