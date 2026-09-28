@@ -107,6 +107,7 @@ import dev.brahmkshatriya.echo.utils.ui.UiUtils.isLandscape
 import dev.brahmkshatriya.echo.utils.ui.UiUtils.isRTL
 import dev.brahmkshatriya.echo.utils.ui.UiUtils.marquee
 import dev.brahmkshatriya.echo.utils.ui.UiUtils.toTimeString
+import dev.brahmkshatriya.echo.utils.ui.ViewPager2Utils.onFirstPageBackSwipe
 import dev.brahmkshatriya.echo.utils.ui.ViewPager2Utils.registerOnUserPageChangeCallback
 import dev.brahmkshatriya.echo.utils.ui.ViewPager2Utils.supportBottomSheetBehavior
 import kotlinx.coroutines.flow.collectLatest
@@ -581,6 +582,9 @@ class PlayerFragment : Fragment() {
         val viewPager = binding!!.viewPager
         viewPager.adapter = adapter
         (viewPager.getChildAt(0) as? RecyclerView)?.itemAnimator = null
+        // Backward swipe on page 0 - the one gesture ViewPager2 cannot report. Routed to the
+        // always-previous command rather than to previous(), and never touches page position.
+        viewPager.onFirstPageBackSwipe { viewModel.previousTrack() }
         viewPager.registerOnUserPageChangeCallback { pos, isUser ->
             val curr = viewModel.playerState.current.value
             val index = curr?.let { c -> viewModel.queue.indexOfFirst { it.mediaId == c.mediaItem.mediaId } } ?: -1
