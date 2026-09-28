@@ -31,6 +31,9 @@ resume_log_full.txt
 # Local agent run artifacts (Slopless findings, regenerable on demand)
 .slopless/
 
+# Local git worktrees (isolated agent workspaces)
+.worktrees/
+
 # Root-level log and inspection files
 /*.log
 /*.txt
