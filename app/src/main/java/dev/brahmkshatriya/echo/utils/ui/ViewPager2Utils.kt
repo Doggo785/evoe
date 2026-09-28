@@ -38,6 +38,10 @@ object ViewPager2Utils {
      * the finger is down would churn the queue and page position underneath the drag.
      * ACTION_CANCEL clears without firing. Does not touch currentItem: the page position
      * keeps its single writer.
+     *
+     * No visual feedback by design: nothing exists left of page 0 to reveal, so any
+     * movement cue (translation follow, dim) either shows void or glitches against the
+     * layout. The track swaps on lift.
      */
     fun ViewPager2.onFirstPageBackSwipe(onSwipe: () -> Unit) {
         val recycler = getChildAt(0) as? RecyclerView ?: return
