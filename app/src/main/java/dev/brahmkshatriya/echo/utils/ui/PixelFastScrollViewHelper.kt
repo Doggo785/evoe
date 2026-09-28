@@ -3,6 +3,7 @@ package dev.brahmkshatriya.echo.utils.ui
 import android.graphics.Canvas
 import android.util.Log
 import android.view.MotionEvent
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.AppBarLayout
 import me.zhanghai.android.fastscroll.FastScroller
@@ -153,24 +154,14 @@ class PixelFastScrollViewHelper(
     }
 
     /**
-     * True while FastScroller is driving the list from a touch it consumed. NOT `view.scrollState`: that
-     * stays IDLE for the whole of a thumb drag, because FastScroller moves the list itself rather than
-     * through RecyclerView's touch handling. Driven off whether the touch predicate consumed the event,
-     * which is true exactly when FastScroller has the thumb or track — see [trackGesture].
+     * Last adapter position sent to the layout manager, or -1 before the first
+     * jump. A held finger re-sends the same thumb fraction on every move event,
+     * and re-applying the same position would schedule a layout pass per event
+     * for nothing, so repeats are skipped. Reset whenever the item count
+     * changes, so a refresh between two gestures cannot pin a stale position.
      */
-    private var gestureActive = false
-
-    /**
-     * The list's scrollable span in content pixels, captured ONCE at the start of each gesture from
-     * [liveRange]. Read [scrollTo].
-     */
-    private var gestureSpan = 1
-
-    /** Previous thumb fraction in this gesture, or NaN before the first. */
-    private var lastFraction = Double.NaN
-
-    /** Sub-pixel remainder carried between frames so a long slow drag cannot drift. */
-    private var pendingPixels = 0.0
+    private var lastJumpPosition = -1
+    private var lastItemCount = -1
 
     // ── TRACE (2026-09-05, temporary, GladixScroll). REMOVE WITH THE INVESTIGATION. ──────────────────
     // Two lines, because the open questions live at two different moments and one cannot answer the other.
@@ -229,7 +220,7 @@ class PixelFastScrollViewHelper(
         )
     }
 
-    /** REMOVE WITH THE TRACE. [req] is the delta handed to nestedScrollBy on this call. */
+    /** REMOVE WITH THE TRACE. [req] is the absolute pixel target of this jump. */
     private fun logDrag(req: Int) {
         dragReqAccum += req
         if (kotlin.math.abs(dragReqAccum - lastDragLogAt) < DRAG_LOG_PX) return
@@ -287,6 +278,23 @@ class PixelFastScrollViewHelper(
     override fun getScrollOffset() = appBarConsumed + view.computeVerticalScrollOffset()
 
     /**
+     * ⚠⚠ [2026-09-28] ABSOLUTE JUMP — READ THIS FIRST, IT SUPERSEDES THE DELTA MECHANISM BELOW.
+     * scrollTo no longer converts the thumb fraction to a pixel delta and no longer calls
+     * nestedScrollBy for list travel: it maps the fraction to an adapter position
+     * (ThumbPositionMapper, over the stable item count — never the wobbling pixel estimate) and
+     * calls LayoutManager.scrollToPositionWithOffset, which builds ONE SCREEN regardless of
+     * distance. The O(drag distance) fill() cost analyzed at the end of this note is what that
+     * removes — measured on device 2026-09-28 as 1.4–5s frozen frames (Davey!) on a single thumb
+     * drag down a large playlist, where the same gesture used to take the process down entirely.
+     * WHAT STAYS LIVE BELOW: the span-pairing requirement (the fraction MUST be recovered with
+     * getScrollRange() - height), the GapWorker tradeoff (the jump path gets no prefetch, but has
+     * one screen to bind instead of N — a measurement, re-check on carousels), and the AppBar
+     * parent analysis (nestedScrollBy is still used, now only for the header nudge bounded by
+     * appBarRange). WHAT IS RECORD: the delta recovery, gestureSpan calibration, sub-pixel
+     * remainders and the zero-delta guard — the gesture state behind them is deleted. The Search
+     * reachability residual is unchanged by this: same fraction space, same estimate, same
+     * two-thirds stall on mixed feeds.
+     *
      * A DELTA, not an absolute seek — RecyclerView has no "set pixel scroll" to mirror `View.scrollTo`.
      *
      * ⚠️ THIS APPLIES A DELTA RECOVERED FROM THE FINGER, NOT THE ABSOLUTE TARGET IT IS HANDED. That is
@@ -444,8 +452,8 @@ class PixelFastScrollViewHelper(
         // finger mid-drag. That is a LESS VISIBLE failure than flashing and therefore the more dangerous
         // one to ship.
         val librarySpan = (getScrollRange() - view.height).coerceAtLeast(1)
-        val fraction = offset.toDouble() / librarySpan
-        if (!gestureActive || lastFraction.isNaN()) {
+        val fraction = ThumbPositionMapper.fractionFor(offset, librarySpan)
+        jumpToFraction(fraction, librarySpan)
             // ⚠️ FOURTH ATTEMPT AT gestureSpan, AND IT WORKS BY DELETING WHAT THE OTHER THREE WERE TUNING.
             // DO NOT REINTRODUCE AN ESTIMATE HERE. Three revisions calibrated a running per-item mean —
             // live sample, then asymmetric EMA, then symmetric EMA — and each was wrong by a different
@@ -561,9 +569,7 @@ class PixelFastScrollViewHelper(
             // the mirror image: frozen at the top means frozen at 4082, which could make the bottom
             // unreachable a different way. Left unproposed - the Search screen has a SECOND, unrelated
             // fault (an initial thumb grab over the card sections is refused), and one fault at a time.
-            gestureSpan = librarySpan
-            lastFraction = fraction
-            pendingPixels = 0.0
+            // Retired 2026-09-28 with the delta branch; the jump above replaces it.
             // ⚠⚠ THIS LINE SETS THE COST OF THE WHOLE GESTURE, AND IT IS O(DRAG DISTANCE).
             // An absolute positioning gesture is expressed here as a RELATIVE scroll:
             // LinearLayoutManager.scrollBy -> fill() lays out and recycles EVERY child across the
@@ -598,20 +604,60 @@ class PixelFastScrollViewHelper(
             //       SEARCH SCROLLER FAULT ARE THE SAME PIECE OF WORK. Anyone scoping either one
             //       separately is scoping half of it and will meet the other half mid-build. This is
             //       the single most useful thing on this line: PLAN THEM TOGETHER.
-            val jump = offset - view.computeVerticalScrollOffset()
-            if (jump != 0) {
-                logDrag(jump)
-                view.nestedScrollBy(0, jump)
-            }
-            return
+            // Retired 2026-09-28: the first-call absolute lane now lives in jumpToFraction.
+    }
+
+    /**
+     * Absolute jump to the finger's share of the rail: maps the fraction to an adapter position
+     * over the stable item count (ThumbPositionMapper — never the wobbling pixel estimate) and
+     * calls scrollToPositionWithOffset, which builds ONE SCREEN regardless of distance. The
+     * composite target is split header-first: the header is driven to its share by [driveAppBar],
+     * the remainder positions the list. Repeats of the same position are skipped so a held finger
+     * cannot schedule a layout pass per move event.
+     */
+    private fun jumpToFraction(fraction: Double, librarySpan: Int) {
+        val itemCount = view.adapter?.itemCount ?: 0
+        if (itemCount != lastItemCount) {
+            lastItemCount = itemCount
+            lastJumpPosition = -1
         }
-        pendingPixels += (fraction - lastFraction) * gestureSpan
-        lastFraction = fraction
-        val delta = pendingPixels.toInt()
-        if (delta == 0) return
-        pendingPixels -= delta
-        logDrag(delta)
-        view.nestedScrollBy(0, delta)
+        if (itemCount > 0) {
+            val targetPx = fraction * librarySpan
+            val appBarTarget = targetPx.coerceIn(0.0, appBarRange.toDouble())
+            driveAppBar(appBarTarget)
+            val listSpan = (liveRange() - view.height).coerceAtLeast(1)
+            val listFraction = ((targetPx - appBarTarget) / listSpan).coerceIn(0.0, 1.0)
+            val position = ThumbPositionMapper.positionFor(listFraction, itemCount)
+            if (position != lastJumpPosition) {
+                lastJumpPosition = position
+                logDrag(targetPx.toInt())
+                (view.layoutManager as? LinearLayoutManager)
+                    ?.scrollToPositionWithOffset(position, 0)
+            }
+        }
+    }
+
+    /**
+     * Drives the collapsing header to its share of the finger's absolute target, in pixels from
+     * expanded. Ends snap without animation; the middle is nudged through the nested-scroll chain
+     * with a delta bounded by the header range, so list travel never pays the O(distance) walk.
+     * A null appBar (every full-bleed screen) or a zero range (non-collapsing header) is a no-op,
+     * which keeps those screens on exactly today's arithmetic.
+     */
+    private fun driveAppBar(appBarTarget: Double) {
+        val bar = appBar
+        val range = appBarRange
+        if (bar != null && range > 0) {
+            val target = appBarTarget.toInt().coerceIn(0, range)
+            if (target <= 0) {
+                bar.setExpanded(true, false)
+            } else if (target >= range) {
+                bar.setExpanded(false, false)
+            } else {
+                val nudge = target - appBarConsumed
+                if (nudge != 0) view.nestedScrollBy(0, nudge)
+            }
+        }
     }
 
     // The three registrations mirror RecyclerViewHelper's own shapes (verified against the 1.3.0 AAR):
@@ -664,42 +710,15 @@ class PixelFastScrollViewHelper(
     // intercepts first wins. That is upstream issue #53, and the library ships
     // FixOnItemTouchListenerRecyclerView for it. This is no worse than the library's own helper, but
     // it is the line to look at if that swap ever happens.
+    // No gesture tracking here: every scrollTo is an absolute jump, so tap and drag need no
+    // first-call seeding and a held finger is deduplicated by position in jumpToFraction.
     override fun addOnTouchEventListener(onTouchEvent: Predicate<MotionEvent>) {
         view.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
-            override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent) =
-                onTouchEvent.test(e).also { trackGesture(e, it) }
+            override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent) = onTouchEvent.test(e)
 
             override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
-                trackGesture(e, onTouchEvent.test(e))
+                onTouchEvent.test(e)
             }
         })
-    }
-
-    /**
-     * Marks the start and end of a FastScroller-driven gesture, which is what lets [scrollTo] treat the
-     * first call as an absolute landing and every later one as a finger delta.
-     *
-     * ⚠️ DRIVEN OFF WHETHER FASTSCROLLER CONSUMED THE EVENT, NOT `view.scrollState`. FastScroller moves
-     * the list itself, so RecyclerView's scrollState stays IDLE for the entire thumb drag and would never
-     * open the gesture. FastScroller.onTouchEvent returns `mDragging`, so a consumed event means exactly
-     * "it has the thumb or the track and is about to drive scrollTo".
-     *
-     * Ordering is deliberate and the track-TAP path depends on it: this runs AFTER the predicate, so on
-     * the ACTION_MOVE where FastScroller decides a track tap has happened it calls scrollToThumbOffset
-     * before [gestureActive] is set — which routes that first jump down [scrollTo]'s absolute branch,
-     * where it belongs. A thumb GRAB sets the flag on ACTION_DOWN, and FastScroller issues no scrollTo
-     * until the following ACTION_MOVE, so it is seeded by the NaN check instead.
-     */
-    private fun trackGesture(event: MotionEvent, consumed: Boolean) {
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> if (consumed) gestureActive = true
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                gestureActive = false
-                // Cleared together: a fraction or remainder left behind would be applied against the NEXT
-                // gesture's span, which is a different scale.
-                lastFraction = Double.NaN
-                pendingPixels = 0.0
-            }
-        }
     }
 }
