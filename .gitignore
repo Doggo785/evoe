@@ -23,6 +23,13 @@ resume_log_full.txt
 *.md
 !README.md
 !CONSTRAINTS.md
+!AGENTS.md
+!CONTEXT.md
+!CONTEXT-MAP.md
+!docs/agents/*.md
+
+# Local agent run artifacts (Slopless findings, regenerable on demand)
+.slopless/
 
 # Root-level log and inspection files
 /*.log
