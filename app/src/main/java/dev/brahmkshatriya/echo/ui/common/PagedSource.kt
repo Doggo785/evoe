@@ -12,6 +12,7 @@ import dev.brahmkshatriya.echo.common.models.Metadata
 import dev.brahmkshatriya.echo.extensions.exceptions.AppException.Companion.toAppException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 
 class PagedSource<T : Any>(
     private val loaded: Result<PagedData<T>>?,
@@ -61,18 +62,21 @@ class PagedSource<T : Any>(
         loaded?.getOrNull()?.invalidate(key)
     }
 
-    override suspend fun load(params: LoadParams<String>): LoadResult<String, T> {
-        val key = params.key
-        return runCatching {
-            val page = loaded?.getOrThrow()?.loadPage(key) ?: throw LoadingException()
-            LoadResult.Page(page.data, key, page.continuation)
-        }.getOrElse { error ->
-            val cachedPage = cached?.mapCatching { it.loadPage(key) }?.getOrNull()
-            return if (cachedPage == null || cachedPage.data.isEmpty())
-                LoadResult.Error(transform(error))
-            else LoadResult.Page(cachedPage.data, key, cachedPage.continuation)
+    // Main-safe by itself: Paging calls load() on Main and flowOn above does not
+    // cover the inner page loads, so the decode + extension parsing move to IO here.
+    override suspend fun load(params: LoadParams<String>): LoadResult<String, T> =
+        withContext(Dispatchers.IO) {
+            val key = params.key
+            runCatching {
+                val page = loaded?.getOrThrow()?.loadPage(key) ?: throw LoadingException()
+                LoadResult.Page(page.data, key, page.continuation)
+            }.getOrElse { error ->
+                val cachedPage = cached?.mapCatching { it.loadPage(key) }?.getOrNull()
+                if (cachedPage == null || cachedPage.data.isEmpty())
+                    LoadResult.Error(transform(error))
+                else LoadResult.Page(cachedPage.data, key, cachedPage.continuation)
+            }
         }
-    }
 
     /**
      * ⚠⚠ THE ONLY EXTENSION CALL PATH IN THE APP THAT DID NOT APPLY toAppException, AND THE

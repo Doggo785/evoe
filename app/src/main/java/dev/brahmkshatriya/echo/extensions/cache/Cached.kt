@@ -47,8 +47,10 @@ import dev.brahmkshatriya.echo.utils.CacheUtils.saveToCache
 import dev.brahmkshatriya.echo.utils.Serializer.toData
 import dev.brahmkshatriya.echo.utils.Serializer.toJson
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -148,16 +150,24 @@ object Cached {
         }
     }
 
+    // File read + JSON decode must not run on the caller thread: this is suspend
+    // but sets no dispatcher, and Paging calls load() on Main (flowOn only moves
+    // the container flow, not the inner page loads). ANR seen decoding a cached page.
     suspend inline fun <reified T> FileKache.getData(id: String) = runCatching {
-        val file = get(id) ?: throw NotFound(id)
-        File(file).readText().toData<T>().getOrThrow()
+        withContext(Dispatchers.IO) {
+            val file = get(id) ?: throw NotFound(id)
+            File(file).readText().toData<T>().getOrThrow()
+        }
     }
 
+    // Same hazard writing: encode + disk write go to IO together with the read above.
     suspend inline fun <reified T> FileKache.putData(id: String, data: T) = runCatching {
-        put(id) {
-            runCatching {
-                File(it).writeText(data.toJson())
-            }.isSuccess
+        withContext(Dispatchers.IO) {
+            put(id) {
+                runCatching {
+                    File(it).writeText(data.toJson())
+                }.isSuccess
+            }
         }
     }
 
