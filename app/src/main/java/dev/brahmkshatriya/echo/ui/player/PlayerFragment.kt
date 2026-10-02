@@ -29,6 +29,10 @@ import androidx.annotation.OptIn
 import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import android.util.Log
+import android.view.MotionEvent
+import android.view.ViewConfiguration
+import android.view.animation.DecelerateInterpolator
+import androidx.viewpager2.widget.ViewPager2
 import androidx.lifecycle.withResumed
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
@@ -577,10 +581,349 @@ class PlayerFragment : Fragment() {
 
     private var isInitialLoad = true
     private var pendingPageScroll: Runnable? = null
+
+    // ── Backward edge swipe (page 0 → previous track) ──────────────────────────────
+    // How the forward swipe works, for reference: ViewPager2 owns two real page views and
+    // tiles them 1:1 with the finger (current at dx, next at dx + width), then settles.
+    // Backward has no page -1 (the queue starts at the current track; history is the
+    // service-side back-stack, published as playerState.previous), so this mirrors it with
+    // one manual translation plus a preview of the previous cover:
+    //   drag    current page follows the finger 1:1, preview tiles in from the entry side
+    //           at (dx - dir * width) — the same tiling a native scroll draws;
+    //   commit  joint settle (current → exit edge, preview → 0), previousTrack() at the
+    //           edge, then the rebound track paints the current page in place under the
+    //           preview and the preview drops — an invisible handoff when the covers match;
+    //   cancel  snap back, preview hidden.
+    // Never intercepts (always returns false): ViewPager2 keeps its drag handling and the
+    // BottomSheet keeps vertical drags. Never touches currentItem: the page position keeps
+    // its single writer in submit(). Extra fingers are ignored, never a cancel; vertical
+    // dominance is judged only when arming, never mid-drag, so a diagonal drift cannot snap
+    // the page home under the finger. Gated on playerState.previous: with no history the
+    // page does not move at all.
+    private var backDownX = 0f
+    private var backDownY = 0f
+    private var backActiveId = MotionEvent.INVALID_POINTER_ID
+    private var backDragging = false
+    private var backAnimating = false
+    private var backDir = 1f
+    private var backWidth = 0f
+    private var backSlop = 0
+    private var backThreshold = 0
+    // Strip views frozen at arm time. Re-resolving per frame risks acting on a transiently
+    // detached holder mid-gesture (frozen strip + stale commit decision); the cached refs
+    // keep their translation across a detach/reattach, and release re-resolves fresh first.
+    private var backPageRef: View? = null
+    private var backNextRef: View? = null
+    // Set at the edge of a committed backward turn, consumed by the submitList commit that
+    // carries the service's insert-at-0 (see the note there). Cleared on next DOWN.
+    private var backCommitPending = false
+    // Turn generation for the exit animation's end-action. Bumped at every turn start; the
+    // end-action runs its commit body only on a match, so a cancelled turn (cancel() also
+    // runs withEndAction, synchronously) can neither re-arm nor fire. The DOWN-cancel path
+    // (Build 2) will bump it before cancelling.
+    private var backTurnGen = 0
+
+    private fun setupBackSwipe(pager: ViewPager2) {
+        val recycler = pager.getChildAt(0) as? RecyclerView ?: return
+        val config = ViewConfiguration.get(pager.context)
+        backSlop = config.scaledTouchSlop
+        backThreshold = config.scaledPagingTouchSlop * 2
+        recycler.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
+            override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+                when (e.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> backOnDown(e)
+                    MotionEvent.ACTION_MOVE -> backOnMove(rv, pager, e)
+                    MotionEvent.ACTION_UP -> backOnRelease(rv, pager, e)
+                    MotionEvent.ACTION_POINTER_UP -> backOnRelease(rv, pager, e)
+                    MotionEvent.ACTION_CANCEL -> backReset(rv, pager)
+                    // ACTION_POINTER_DOWN deliberately ignored: a second finger never cancels.
+                }
+                return false
+            }
+        })
+    }
+
+    private fun backPageView(rv: RecyclerView, pager: ViewPager2): View? =
+        rv.findViewHolderForAdapterPosition(pager.currentItem)?.itemView
+
+    // The real next page (position+1) stays laid out to the right during the drag. It must
+    // follow the finger with the current page: ViewPager2 tiles whole pages, so translating
+    // only the current one slides its cover UNDER the next cover (child order paints
+    // position 1 on top). Moving the strip keeps the right-hand gap constant, like native.
+    private fun backNextView(rv: RecyclerView, pager: ViewPager2): View? =
+        rv.findViewHolderForAdapterPosition(pager.currentItem + 1)?.itemView
+
+    private fun backCanSwipe(pager: ViewPager2): Boolean =
+        pager.currentItem == 0 && pager.isUserInputEnabled &&
+            viewModel.playerState.previous.value != null
+
+    private fun backOnDown(e: MotionEvent) {
+        if (backAnimating) return
+        val idx = e.actionIndex
+        backActiveId = e.getPointerId(idx)
+        backDownX = e.getX(idx)
+        backDownY = e.getY(idx)
+        backDragging = false
+        adapter.onFirstPageBound = null
+        backCommitPending = false
+        backPageRef = null
+        backNextRef = null
+        backHidePreview()
+    }
+
+    private fun backMayArm(pager: ViewPager2, rv: RecyclerView, backwards: Float, dyAbs: Float): Boolean {
+        // sx == 0 only: any native scroll offset means native owns the content (proven by log:
+        // measured gap == 84 - sx to the pixel). Arming on top of it stacks our translation
+        // onto the native scroll and the covers overlap. Anything but SETTLING for the same
+        // reason: mid-settle the logical position lags the rendered one.
+        if (rv.computeHorizontalScrollOffset() != 0 ||
+            pager.scrollState == ViewPager2.SCROLL_STATE_SETTLING
+        ) return false
+        return pager.isUserInputEnabled && BackSwipeMath.shouldArm(backwards, dyAbs, backSlop.toFloat())
+    }
+
+    private fun backOnMove(rv: RecyclerView, pager: ViewPager2, e: MotionEvent) {
+        val idx = e.findPointerIndex(backActiveId)
+        if (idx < 0 || backAnimating) return
+        val dx = e.getX(idx) - backDownX
+        val dy = e.getY(idx) - backDownY
+        if (pager.currentItem != 0) {
+            backReset(rv, pager)
+        } else if (!backDragging) {
+            val rtl = rv.layoutDirection == View.LAYOUT_DIRECTION_RTL
+            if (backMayArm(pager, rv, BackSwipeMath.backwards(dx, rtl), abs(dy))) {
+                backDragging = backShowPreview(pager, rv, dx)
+            }
+        } else if (rv.computeHorizontalScrollOffset() != 0) {
+            // Native scrolled under a live stream (forward peek during a wiggle): hand over,
+            // same dead-stream discipline as the reversal below.
+            backReset(rv, pager)
+        } else if (BackSwipeMath.isReversed(
+                BackSwipeMath.backwards(dx, rv.layoutDirection == View.LAYOUT_DIRECTION_RTL),
+                backSlop.toFloat()
+            )
+        ) {
+            // One owner per stream: the finger escaped forward, native keeps the gesture and
+            // this stream goes dead until the next DOWN (backReset invalidates the pointer).
+            backReset(rv, pager)
+        } else {
+            backMoveFrame(dx)
+        }
+    }
+
+    private fun backMoveFrame(dx: Float) {
+        // Cached refs, never re-resolved: a transiently detached holder mid-drag would freeze
+        // the strip on stale translations. backShowPreview arms only with both refs set.
+        val page = backPageRef ?: return
+        backMoveStrip(page, dx)
+    }
+
+    private fun backMoveStrip(page: View, dx: Float) {
+        val follow = BackSwipeMath.clampDrag(
+            dx, backStripWidth(page), backDir
+        )
+        page.translationX = follow
+        backNextRef?.translationX = follow
+        binding?.previousPreviewContainer?.translationX =
+            BackSwipeMath.previewTx(dx, backDir, backWidth)
+    }
+
+    private fun backStripWidth(page: View): Float =
+        page.width.toFloat().takeIf { it > 0f } ?: backWidth.takeIf { it > 0f } ?: 0f
+
+    // The commit reads the LIFT position, not the last MOVE's latch: a finger that travelled
+    // far and came back to center holds no MOVE at center, and firing on the stale far latch
+    // would swipe on a centered release.
+    private fun backOnRelease(rv: RecyclerView, pager: ViewPager2, e: MotionEvent) {
+        val pointerId = e.getPointerId(e.actionIndex)
+        if (pointerId != backActiveId) return
+        backActiveId = MotionEvent.INVALID_POINTER_ID
+        backDragging = false
+        if (backPageRef == null) return
+        val idx = e.findPointerIndex(pointerId)
+        val upDx = idx.takeIf { it >= 0 }?.let { e.getX(it) - backDownX } ?: 0f
+        val upDy = idx.takeIf { it >= 0 }?.let { e.getY(it) - backDownY } ?: 0f
+        backReleaseAct(rv, pager, upDx, upDy)
+    }
+
+    private fun backMayFire(pager: ViewPager2, rv: RecyclerView, upDx: Float, upDy: Float): Boolean {
+        val rtl = rv.layoutDirection == View.LAYOUT_DIRECTION_RTL
+        // Not SETTLING and no native offset: same reasons as the arm gate (stale logical
+        // position, native-owned content). DRAGGING here is our own edge drag.
+        if (pager.scrollState == ViewPager2.SCROLL_STATE_SETTLING ||
+            rv.computeHorizontalScrollOffset() != 0
+        ) return false
+        return BackSwipeMath.isQualified(
+            BackSwipeMath.backwards(upDx, rtl), abs(upDy), backThreshold.toFloat()
+        ) && backCanSwipe(pager)
+    }
+
+    private fun backReleaseAct(rv: RecyclerView, pager: ViewPager2, upDx: Float, upDy: Float) {
+        val fire = backMayFire(pager, rv, upDx, upDy)
+        val page = backPageView(rv, pager) ?: backPageRef
+        val next = backNextRef ?: backNextView(rv, pager)
+        if (fire && page != null) backPlayTurn(page, next)
+        else if (fire) {
+            // Page recycled mid-drag: no view to animate, but the intent stands.
+            viewModel.previousTrack()
+            next?.translationX = 0f
+            backHidePreview()
+        } else {
+            if (page != null) backSnapBack(page, next)
+            backHidePreview()
+        }
+        backPageRef = null
+        backNextRef = null
+    }
+
+    private fun backReset(rv: RecyclerView, pager: ViewPager2) {
+        if (backAnimating) return
+        backActiveId = MotionEvent.INVALID_POINTER_ID
+        backDragging = false
+        (backPageRef ?: backPageView(rv, pager))?.translationX = 0f
+        (backNextRef ?: backNextView(rv, pager))?.translationX = 0f
+        backPageRef = null
+        backNextRef = null
+        backHidePreview()
+    }
+
+    private fun backSnapBack(page: View, next: View?) {
+        page.animate().translationX(0f)
+            .setDuration(BACK_SNAP_MS)
+            .setInterpolator(BACK_INTERPOLATOR)
+            .start()
+        next?.animate()?.translationX(0f)
+            ?.setDuration(BACK_SNAP_MS)
+            ?.setInterpolator(BACK_INTERPOLATOR)
+            ?.start()
+    }
+
+    private fun backPlayTurn(page: View, next: View?) {
+        backAnimating = true
+        val container = binding?.previousPreviewContainer
+        if (container == null || backWidth <= 0f) {
+            viewModel.previousTrack()
+            page.translationX = 0f
+            next?.translationX = 0f
+            backAnimating = false
+            return
+        }
+        val dir = backDir
+        val width = backWidth
+        val exit = BackSwipeMath.exitTx(dir, width)
+        backTurnGen += 1
+        val gen = backTurnGen
+        page.animate().translationX(exit)
+            .setDuration(BACK_TURN_MS)
+            .setInterpolator(BACK_INTERPOLATOR)
+            .withEndAction {
+                // Stale turns (a DOWN-cancel bumped the generation, and cancel() runs this
+                // synchronously) must neither re-arm nor fire.
+                if (gen == backTurnGen) {
+                    // Armed BEFORE the command: the rebind lands after, never during the flight.
+                    backCommitPending = true
+                    adapter.onFirstPageBound = {
+                        adapter.onFirstPageBound = null
+                        if (backAnimating) {
+                            page.translationX = 0f
+                            next?.translationX = 0f
+                            backHidePreview()
+                            backAnimating = false
+                        }
+                    }
+                    viewModel.previousTrack()
+                }
+            }
+            .start()
+        next?.animate()?.translationX(exit)
+            ?.setDuration(BACK_TURN_MS)
+            ?.setInterpolator(BACK_INTERPOLATOR)
+            ?.start()
+        container.animate().translationX(0f)
+            .setDuration(BACK_TURN_MS)
+            .setInterpolator(BACK_INTERPOLATOR)
+            .start()
+    }
+
+    // Shows the previous cover on the current cover's rect and parks it one width off the
+    // entry side. False when there is nothing to show (no history race) — the caller then
+    // leaves dragging off and the page never moves.
+    private fun backShowPreview(pager: ViewPager2, rv: RecyclerView, dx: Float): Boolean {
+        val prev = viewModel.playerState.previous.value
+        val page = backPageView(rv, pager)
+        if (prev == null || page == null) return false
+        backPageRef = page
+        backNextRef = backNextView(rv, pager)
+        backRenderPreview(prev.mediaId, page, rv, dx)
+        return binding?.previousPreviewContainer?.isVisible == true
+    }
+
+    private fun backRenderPreview(mediaId: String, page: View, rv: RecyclerView, dx: Float) {
+        val b = binding
+        val prev = viewModel.playerState.previous.value?.takeIf { it.mediaId == mediaId }
+        if (b != null && prev != null) {
+            val coverSlot = page.findViewById<View>(R.id.player_track_cover_container)
+            if (coverSlot != null && coverSlot.width > 0) {
+                backDir = if (rv.layoutDirection == View.LAYOUT_DIRECTION_RTL) -1f else 1f
+                backWidth = page.width.toFloat()
+                backFillPreview(b, prev, coverSlot, dx)
+            }
+        }
+    }
+
+    private fun backFillPreview(
+        b: FragmentPlayerBinding,
+        prev: MediaItem,
+        coverSlot: View,
+        dx: Float
+    ) {
+        val coverView = b.previousPreviewCover
+        val container = b.previousPreviewContainer
+        if (coverView != null && container != null) {
+            val coverLoc = IntArray(2).also { coverSlot.getLocationInWindow(it) }
+            val fgLoc = IntArray(2).also { b.fgContainer.getLocationInWindow(it) }
+            (coverView.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
+                it.width = coverSlot.width
+                it.height = coverSlot.height
+                it.leftMargin = coverLoc[0] - fgLoc[0]
+                it.topMargin = coverLoc[1] - fgLoc[1]
+                coverView.layoutParams = it
+            }
+            val radius = PREVIEW_RADIUS_DP.dpToPx(coverView.context).toFloat()
+            coverView.outlineProvider = object : ViewOutlineProvider() {
+                override fun getOutline(view: View, outline: Outline) {
+                    outline.setRoundRect(0, 0, view.width, view.height, radius)
+                }
+            }
+            coverView.clipToOutline = true
+            val context = coverView.context
+            prev.track.cover.loadWithThumb(
+                coverView, prev.unloadedCover?.getCachedDrawable(context)
+            ) {
+                setImageDrawable(
+                    it ?: ResourcesCompat.getDrawable(
+                        context.resources, R.drawable.art_music, context.theme
+                    )
+                )
+            }
+            container.translationX = BackSwipeMath.previewTx(dx, backDir, backWidth)
+            container.isVisible = true
+        }
+    }
+
+    private fun backHidePreview() {
+        binding?.previousPreviewContainer?.isVisible = false
+        binding?.previousPreviewContainer?.translationX = 0f
+    }
     private fun configurePlayerControls() {
         val viewPager = binding!!.viewPager
         viewPager.adapter = adapter
         (viewPager.getChildAt(0) as? RecyclerView)?.itemAnimator = null
+        // Backward swipe on page 0 - the one gesture ViewPager2 cannot report (page -1 does
+        // not exist: the queue is forward-only, history lives in ShufflePlayer's back-stack).
+        // Routed to the always-previous command rather than to previous(), and never touches
+        // page position. See setupBackSwipe for the gesture + preview.
+        setupBackSwipe(viewPager)
         viewPager.registerOnUserPageChangeCallback { pos, isUser ->
             val curr = viewModel.playerState.current.value
             val index = curr?.let { c -> viewModel.queue.indexOfFirst { it.mediaId == c.mediaItem.mediaId } } ?: -1
@@ -738,7 +1081,19 @@ class PlayerFragment : Fragment() {
                     ?.getDisplay(Display.DEFAULT_DISPLAY)?.state == Display.STATE_ON
                 val smooth = displayOn && isResumed && !isInitialLoad && abs(index - current) <= 1
                 isInitialLoad = false
-                if (!viewPager.isLaidOut) viewPager.setCurrentItem(index, smooth)
+                // Backward edge swipe landing: the service inserted the previous track at 0, so
+                // this list has one more leading item than the pager rendered. A posted smooth
+                // setCurrentItem(0) would first let RecyclerView's insert shift the viewport onto
+                // position 1 (old cover glimpse) and then visibly yank back — the replay. Snapping
+                // synchronously here lands before the next layout, so position 0 renders directly
+                // with no shift and no animation. One-shot: cleared on consume and on next DOWN.
+                // Bypass ViewPager2: setCurrentItem(0, false) early-returns on same-item-when-idle
+                // (proven by log: pos=1 fired right after it), posting nothing, while the inner
+                // scrollToPosition always latches a pending scroll for the next layout.
+                if (backCommitPending && index == 0) {
+                    backCommitPending = false
+                    (viewPager.getChildAt(0) as? RecyclerView)?.scrollToPosition(0)
+                } else if (!viewPager.isLaidOut) viewPager.setCurrentItem(index, smooth)
                 else {
                     pendingPageScroll?.let { viewPager.removeCallbacks(it) }
                     val runnable = Runnable {
@@ -1461,6 +1816,11 @@ class PlayerFragment : Fragment() {
     }
 
     companion object {
+        private const val BACK_TURN_MS = 250L
+        private const val BACK_SNAP_MS = 200L
+        private const val PREVIEW_RADIUS_DP = 8
+        // Single interpolator for the swipe animations (one per gesture, not per animator).
+        private val BACK_INTERPOLATOR = DecelerateInterpolator()
         private fun Context.showBackground() = getSettings().showBackground()
         const val DYNAMIC_PLAYER = "dynamic_player"
         const val PLAYER_COLOR = "player_app_color"

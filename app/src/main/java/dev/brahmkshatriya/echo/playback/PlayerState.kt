@@ -18,7 +18,12 @@ import java.util.concurrent.atomic.AtomicLong
 data class PlayerState(
     val current: MutableStateFlow<Current?> = MutableStateFlow(null),
     val radio: MutableStateFlow<Radio> = MutableStateFlow(Radio.Empty),
-    val session: MutableStateFlow<Int> = MutableStateFlow(0)
+    val session: MutableStateFlow<Int> = MutableStateFlow(0),
+    // Top of ShufflePlayer's back-stack (the track a backward edge swipe would go to),
+    // published next to `current` in PlayerEventListener.updateCurrentFlow so the two stay
+    // in lockstep. Null when nothing was played yet or the queue was replaced (both clear
+    // the stack). Same-process StateFlow like `current` — no parcel involved.
+    val previous: MutableStateFlow<MediaItem?> = MutableStateFlow(null),
 ) {
 
     val servers: MutableMap<String, Result<Streamable.Media.Server>> =

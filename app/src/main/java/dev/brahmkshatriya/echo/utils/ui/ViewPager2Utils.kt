@@ -18,6 +18,12 @@ object ViewPager2Utils {
         }
     }
 
+    // NOTE: the backward edge swipe (page 0 → previous track) used to live here as
+    // onFirstPageBackSwipe. It moved to PlayerFragment.setupBackSwipe: showing the previous
+    // cover needs the adapter's cover rect, the preview overlay and playerState.previous,
+    // none of which belong in a ViewPager2 helper. This file keeps the pager behaviors
+    // that are genuinely generic.
+
     fun ViewPager2.registerOnUserPageChangeCallback(
         listener: (position: Int, userInitiated: Boolean) -> Unit
     ) {

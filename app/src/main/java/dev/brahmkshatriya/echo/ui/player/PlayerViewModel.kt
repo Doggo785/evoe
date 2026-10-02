@@ -40,6 +40,7 @@ import dev.brahmkshatriya.echo.playback.PlayerCommands.addToNextCommand
 import dev.brahmkshatriya.echo.playback.PlayerCommands.addToQueueCommand
 import dev.brahmkshatriya.echo.playback.PlayerCommands.backfillCommand
 import dev.brahmkshatriya.echo.playback.PlayerCommands.playCommand
+import dev.brahmkshatriya.echo.playback.PlayerCommands.previousTrackCommand
 import dev.brahmkshatriya.echo.playback.PlayerCommands.radioCommand
 import dev.brahmkshatriya.echo.playback.PlayerCommands.trackRadioCommand
 import dev.brahmkshatriya.echo.playback.PlayerCommands.seekToFullCommand
@@ -342,6 +343,13 @@ class PlayerViewModel(
 
     fun previous() {
         withBrowser { it.seekToPrevious() }
+    }
+
+    // Backward edge swipe only. Deliberately NOT previous(): that restarts the current
+    // track past 3s, right for a button and wrong for a navigation gesture. No-op
+    // service-side when the back-stack is empty.
+    fun previousTrack() {
+        withBrowser { it.sendCustomCommand(previousTrackCommand, Bundle.EMPTY) }
     }
 
     fun setShuffle(isShuffled: Boolean, changeCurrent: Boolean = false) {

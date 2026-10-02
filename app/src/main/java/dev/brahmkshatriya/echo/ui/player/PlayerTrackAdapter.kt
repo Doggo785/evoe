@@ -326,17 +326,25 @@ class PlayerTrackAdapter(
                 recordCoverDecision("declined:coverDrawable@retryLoad", item?.mediaId)
                 return
             }
+            requestCover(item, item?.mediaId, "retryLoad")
+        }
+
+        // Single cover-request path for bind() and retryLoad(): same thumbnail pre-set, same
+        // guarded paint, same latch-only-on-real-delivery rule. A null drawable still reaches
+        // onDelivered — latching on it would mark the id done while nothing painted, so the
+        // next bind of the same id would be declined and the page would stay blank. Callers
+        // keep their own entry guards; only bind() starts a new track (coverDrawable = null).
+        private fun requestCover(item: MediaItem?, boundId: String?, site: String) {
             val old = item?.unloadedCover?.getCachedDrawable(binding.root.context)
-            val boundId = item?.mediaId
             pendingMediaId = boundId
-            recordCoverDecision("issued:retryLoad", boundId)
+            recordCoverDecision("issued:$site", boundId)
             item?.track?.cover.loadWithThumb(
                 binding.playerTrackCover, old,
-                onSource = { src -> upgradeCoverDecision("retryLoad", src) },
+                onSource = { src -> upgradeCoverDecision(site, src) },
                 onDelivered = { drawable ->
                     if (pendingMediaId == boundId) {
                         coverDrawable = drawable
-                        lastBoundMediaId = boundId
+                        if (drawable != null) lastBoundMediaId = boundId
                     }
                 }
             ) {
@@ -350,6 +358,9 @@ class PlayerTrackAdapter(
         }
 
         fun bind(item: MediaItem?) {
+            // Gesture offsets never survive a (re)bind: the back-swipe translates itemViews, and
+            // a holder recycled mid-gesture would otherwise carry its offset onto another position.
+            itemView.translationX = 0f
             // ☠️ INERT - these TextViews are inside the permanently invisible collapsedPlayerInfo, so this
             // text is never seen. The mini-bar title/artist the user reads are written in PlayerFragment
             // onto item_player_collapsed_controls. See item_player_collapsed.xml's root note.
@@ -364,31 +375,16 @@ class PlayerTrackAdapter(
                 // terminal outcome arrives this holder stays rebindable, so a rebind of the same track
                 // re-enters and re-runs the synchronous pre-set below, which repaints the ImageView from
                 // the disk cache with no delivery required.
-                val boundId = item?.mediaId
-                pendingMediaId = boundId
-                recordCoverDecision("issued:bind", boundId)
                 coverDrawable = null
-                val old = item?.unloadedCover?.getCachedDrawable(binding.root.context)
-                item?.track?.cover.loadWithThumb(
-                    binding.playerTrackCover, old,
-                    onSource = { src -> upgradeCoverDecision("bind", src) },
-                    onDelivered = { drawable ->
-                        if (pendingMediaId == boundId) {
-                            coverDrawable = drawable
-                            lastBoundMediaId = boundId
-                        }
-                    }
-                ) {
-                    if (pendingMediaId != boundId) return@loadWithThumb
-                    val image = it
-                        ?: ResourcesCompat.getDrawable(resources, R.drawable.art_music, context.theme)
-                    setImageDrawable(image)
-                    paintedDrawable = it
-                    applyDrawable()
-                }
+                requestCover(item, item?.mediaId, "bind")
             }
             updateInsets()
             updateColors()
+            // Settle signal for the backward edge swipe's incoming page: the swipe arms this
+            // around its commit and clears it when it fires, so ordinary scroll binds only
+            // invoke a null. Fires for any position-0 bind (not id-matched): after the commit
+            // the service may land a different track than previewed if the stack moved mid-turn.
+            if (bindingAdapterPosition == 0) onFirstPageBound?.invoke()
         }
 
         init {
@@ -479,6 +475,10 @@ class PlayerTrackAdapter(
     }
 
     var currentDrawableListener: ((Drawable?) -> Unit)? = null
+
+    // See the note at the end of ViewHolder.bind. Single-shot by convention: the setter
+    // clears it when it fires.
+    var onFirstPageBound: (() -> Unit)? = null
 
     companion object {
         fun ItemClickPanelsBinding.configureClicking(listener: Listener, uiViewModel: UiViewModel) {
