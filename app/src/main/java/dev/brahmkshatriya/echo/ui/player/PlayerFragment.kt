@@ -790,11 +790,11 @@ class PlayerFragment : Fragment() {
     private fun backSnapBack(page: View, next: View?) {
         page.animate().translationX(0f)
             .setDuration(BACK_SNAP_MS)
-            .setInterpolator(DecelerateInterpolator())
+            .setInterpolator(BACK_INTERPOLATOR)
             .start()
         next?.animate()?.translationX(0f)
             ?.setDuration(BACK_SNAP_MS)
-            ?.setInterpolator(DecelerateInterpolator())
+            ?.setInterpolator(BACK_INTERPOLATOR)
             ?.start()
     }
 
@@ -815,7 +815,7 @@ class PlayerFragment : Fragment() {
         val gen = backTurnGen
         page.animate().translationX(exit)
             .setDuration(BACK_TURN_MS)
-            .setInterpolator(DecelerateInterpolator())
+            .setInterpolator(BACK_INTERPOLATOR)
             .withEndAction {
                 // Stale turns (a DOWN-cancel bumped the generation, and cancel() runs this
                 // synchronously) must neither re-arm nor fire.
@@ -837,11 +837,11 @@ class PlayerFragment : Fragment() {
             .start()
         next?.animate()?.translationX(exit)
             ?.setDuration(BACK_TURN_MS)
-            ?.setInterpolator(DecelerateInterpolator())
+            ?.setInterpolator(BACK_INTERPOLATOR)
             ?.start()
         container.animate().translationX(0f)
             .setDuration(BACK_TURN_MS)
-            .setInterpolator(DecelerateInterpolator())
+            .setInterpolator(BACK_INTERPOLATOR)
             .start()
     }
 
@@ -1819,6 +1819,8 @@ class PlayerFragment : Fragment() {
         private const val BACK_TURN_MS = 250L
         private const val BACK_SNAP_MS = 200L
         private const val PREVIEW_RADIUS_DP = 8
+        // Single interpolator for the swipe animations (one per gesture, not per animator).
+        private val BACK_INTERPOLATOR = DecelerateInterpolator()
         private fun Context.showBackground() = getSettings().showBackground()
         const val DYNAMIC_PLAYER = "dynamic_player"
         const val PLAYER_COLOR = "player_app_color"
