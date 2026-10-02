@@ -30,6 +30,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
 import androidx.media3.common.util.UnstableApi
@@ -355,6 +356,13 @@ class PlayerService : MediaLibraryService() {
                 app.crashExtensionId = mediaItem?.extensionId ?: "none"
                 // Reuse the already-decoded id (no second state round-trip); once per track transition.
                 CrashKeys.onPlayingExtension(app.crashExtensionId)
+                // Back-stack top for the full player's backward edge swipe (preview + gating).
+                // Every stack mutation (push on advance/jump, pop on previous, clear on replace)
+                // runs synchronously before its timeline/transition event flushes here.
+                state.previous.value = (player as? ShufflePlayer)?.peekPrevious()
+            }
+            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+                state.previous.value = (player as? ShufflePlayer)?.peekPrevious()
             }
         })
         app.settings.registerOnSharedPreferenceChangeListener(listener)

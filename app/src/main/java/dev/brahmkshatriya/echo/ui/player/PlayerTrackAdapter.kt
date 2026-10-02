@@ -393,6 +393,11 @@ class PlayerTrackAdapter(
             }
             updateInsets()
             updateColors()
+            // Settle signal for the backward edge swipe's incoming page: the swipe arms this
+            // around its commit and clears it when it fires, so ordinary scroll binds only
+            // invoke a null. Fires for any position-0 bind (not id-matched): after the commit
+            // the service may land a different track than previewed if the stack moved mid-turn.
+            if (bindingAdapterPosition == 0) onFirstPageBound?.invoke()
         }
 
         init {
@@ -483,6 +488,10 @@ class PlayerTrackAdapter(
     }
 
     var currentDrawableListener: ((Drawable?) -> Unit)? = null
+
+    // See the note at the end of ViewHolder.bind. Single-shot by convention: the setter
+    // clears it when it fires.
+    var onFirstPageBound: (() -> Unit)? = null
 
     companion object {
         fun ItemClickPanelsBinding.configureClicking(listener: Listener, uiViewModel: UiViewModel) {

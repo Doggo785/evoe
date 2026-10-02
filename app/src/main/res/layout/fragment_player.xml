@@ -69,6 +69,26 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
+        <!-- Backward edge swipe preview: the previous track's cover, tiling in from the
+             entry side as the current page follows the finger right on page 0.
+             Shown only during that drag (PlayerFragment positions the cover on the
+             current cover's rect and moves it like a native incoming page). Above
+             view_pager so it stays visible through the async track swap; the rest is
+             transparent, so the page and the blurred bg show around it. -->
+        <FrameLayout
+            android:id="@+id/previous_preview_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/previous_preview_cover"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:importantForAccessibility="no" />
+        </FrameLayout>
+
 
         <!--        <include layout="@layout/item_player_track"/>-->
 
