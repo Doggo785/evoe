@@ -62,7 +62,11 @@ jobs:
       - name: verify exactly one release apk, tag matches version.txt
         run: |
           set -euo pipefail
-          APK_COUNT=$(ls app/build/outputs/apk/release/*.apk | wc -l)
+          # ls fails when the glob matches nothing, and pipefail + set -e would
+          # exit the script on that failure before the count check below runs.
+          # `|| true` keeps the pipeline alive so the check reports the
+          # failure with its own message instead of ls's raw error.
+          APK_COUNT=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | wc -l || true)
           if [ "$APK_COUNT" -ne 1 ]; then
             echo "expected exactly 1 apk in app/build/outputs/apk/release/, found $APK_COUNT"
             ls -la app/build/outputs/apk/release/
