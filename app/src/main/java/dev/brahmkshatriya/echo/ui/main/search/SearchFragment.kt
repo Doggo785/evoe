@@ -251,7 +251,7 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
         // RecyclerView (MainFragment's). It does not - applyInsets is a SHARED companion extension and the
         // tag is a label on the helper, not on a view. This screen has ONE RecyclerView with TWO listeners.
         // Second time in this codebase a NAME has been read as describing a function it does not perform;
-        // the other is bufferBar, whose only surviving job is to draw the static unplayed rail.
+        // the other is collapsed_buffer, whose only surviving job is to draw the static unplayed rail.
         getTouchHelper(listener).attachToRecyclerView(recyclerView)
         configureGridLayout(
             recyclerView,

@@ -27,6 +27,7 @@ import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.slider.Slider
 import kotlinx.coroutines.flow.combine
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import dev.brahmkshatriya.echo.R
 import dev.brahmkshatriya.echo.databinding.FragmentPlayerTvBinding
 import dev.brahmkshatriya.echo.ui.media.more.MediaMoreBottomSheet
@@ -103,45 +104,9 @@ class PlayerTvFragment : Fragment() {
         backCallback.isEnabled = uiViewModel.playerSheetState.value == STATE_EXPANDED
         viewLifecycleOwner.observe(uiViewModel.playerSheetState) { state ->
             backCallback.isEnabled = state == STATE_EXPANDED
-            updateWaveMotion()
             // Landing is driven by the physical settle in UiViewModel.onStateChanged plus the single
             // MainActivity window-focus arbiter — the old flow-driven doOnLayout here raced the unlock.
         }
-    }
-
-    // Wave motion — TV twin of PlayerFragment.updateWaveMotion(); the gating note lives in styles.xml
-    // (EchoLinearProgressIndicator.Wavy) and applies verbatim here. Two TV-specific differences:
-    //   - TV rests at STATE_HIDDEN, not STATE_COLLAPSED (it has a separate mini bar), so the on-screen
-    //     test is "== STATE_EXPANDED" rather than "!= STATE_COLLAPSED".
-    //   - PlayerTvFragment had no onPause/onResume at all, so unlike the phone there was no Ken Burns
-    //     discipline to mirror; the pair below exists solely for this.
-    private var waveSpeedPx = -1
-    private var waveAmplitudePx = -1
-    private var waveResumed = false
-
-    private fun updateWaveMotion() {
-        val wave = binding?.tvSeekWaveBar ?: return
-        if (waveSpeedPx < 0) {
-            waveSpeedPx = wave.waveSpeed
-            waveAmplitudePx = wave.waveAmplitude
-        }
-        // playWhenReady, not Current.isPlaying — see the note on PlayerFragment's twin of this line.
-        val playing = viewModel.playWhenReady.value
-        val expanded = uiViewModel.playerSheetState.value == STATE_EXPANDED
-        wave.waveAmplitude = if (playing) waveAmplitudePx else 0
-        wave.waveSpeed = if (playing && expanded && waveResumed) waveSpeedPx else 0
-    }
-
-    override fun onPause() {
-        super.onPause()
-        waveResumed = false
-        updateWaveMotion()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        waveResumed = true
-        updateWaveMotion()
     }
 
     private fun configureControls() {
@@ -180,10 +145,6 @@ class PlayerTvFragment : Fragment() {
         val playPauseListener = CheckBoxListener { viewModel.setPlaying(it) }
         binding.tvTrackPlayPause.addOnCheckedStateChangedListener(playPauseListener)
         observe(viewModel.playWhenReady) {
-            // Also the wave's primary driver — observe() is flowWithLifecycle(STARTED) over a StateFlow,
-            // so this re-asserts on every ON_START and a missed edge self-corrects. Folded into the
-            // existing observer rather than adding a second one over the same flow.
-            updateWaveMotion()
             playPauseListener.enabled = false
             binding.tvTrackPlayPause.isChecked = it
             playPauseListener.enabled = true
@@ -194,10 +155,8 @@ class PlayerTvFragment : Fragment() {
         }
 
         // Progress
-        observe(viewModel.progress) { (curr, buff) ->
-            binding.tvBufferBar.progress = buff.toInt()
+        observe(viewModel.progress) { (curr, _) ->
             if (!binding.tvSeekBar.isPressed) {
-                binding.tvSeekWaveBar.progress = curr.toInt()
                 binding.tvSeekBar.value =
                     max(0f, min(curr.toFloat(), binding.tvSeekBar.valueTo))
                 binding.tvCurrentTime.text = curr.toTimeString()
@@ -206,12 +165,10 @@ class PlayerTvFragment : Fragment() {
         // DELIBERATE MIRROR of PlayerFragment's duration observer (see the rationale there): combine
         // totalDuration + current so the track-duration fallback re-fires when current arrives, instead of
         // being stranded behind a totalDuration null->null that never emits. Keep the two in sync; this one
-        // writes the TV views (tvBufferBar / tvSeekBar / tvTotalTime).
+        // writes the TV views (tvSeekBar / tvTotalTime).
         observe(combine(viewModel.totalDuration, viewModel.playerState.current) { total, current ->
             total ?: current?.track?.duration ?: 0L
         }) { duration ->
-            binding.tvBufferBar.max = duration.toInt()
-            binding.tvSeekWaveBar.max = duration.toInt()
             binding.tvSeekBar.apply {
                 value = max(0f, min(value, duration.toFloat()))
                 valueTo = 1f + duration
@@ -223,10 +180,6 @@ class PlayerTvFragment : Fragment() {
         binding.tvSeekBar.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 binding.tvCurrentTime.text = value.toLong().toTimeString()
-                // Mirrors PlayerFragment: the wave is a separate view, the progress observer is gated on
-                // !isPressed, so without this the wave lags the thumb for the whole drag. On TV the drag
-                // also arrives from DPAD_LEFT/RIGHT via seekToAdd, which comes back through the observer.
-                binding.tvSeekWaveBar.progress = value.toInt()
             }
         }
         binding.tvSeekBar.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
@@ -406,28 +359,25 @@ class PlayerTvFragment : Fragment() {
 
             b.root.setBackgroundColor(if (dynamic) colors.accent else colors.background)
             b.tvBgGradient.imageTintList = ColorStateList.valueOf(colors.background)
-            // Accent goes on the WAVE, not the Slider's active track — see PlayerFragment's twin of this
-            // line. A runtime tint here would override the transparent trackColorActive in XML and draw a
-            // straight line back under the wave.
+            // Straight seek bar, Spotify style: the Slider draws both halves, active full-opacity
+            // neutral and inactive the same neutral at 30%. See PlayerFragment's twin of this line
+            // for why the bar never takes the accent.
             // ⚠⚠ NEUTRAL, MIRRORING PlayerFragment - AND THE CASE IS STRONGER HERE, NOT WEAKER.
-            // Read the full rationale at PlayerFragment's twin of this line. On phone the wave and its
+            // Read the full rationale at PlayerFragment's twin of this line. On phone the bar and its
             // background are two colours drawn from ONE image; on TV, `b.root.setBackgroundColor(...)` a few
-            // lines above sets the root to `colors.accent` ITSELF when dynamic - so the wave and the surface
-            // behind it were the SAME VALUE, not merely the same region of colour space. Invisible by
-            // arithmetic rather than by coincidence.
+            // lines above sets the root to `colors.accent` ITSELF when dynamic - so an accent-tinted bar
+            // would sit on its own colour. Invisible by arithmetic rather than by coincidence.
             // TV already uses amoled_fg for its own chrome (icon tints, text in fragment_player_tv.xml), so
             // this matches what is beside it. tvPlayingIndicator below KEEPS the accent: it is not on the
             // seek row and does not sit on the progress track.
             val seekNeutral = ContextCompat.getColor(ctx, R.color.amoled_fg)
-            b.tvSeekWaveBar.setIndicatorColor(seekNeutral)
+            b.tvSeekBar.trackActiveTintList = ColorStateList.valueOf(seekNeutral)
+            b.tvSeekBar.trackInactiveTintList =
+                ColorStateList.valueOf(
+                    ColorUtils.setAlphaComponent(seekNeutral, PlayerFragment.SEEK_RAIL_ALPHA)
+                )
             b.tvSeekBar.thumbTintList = ColorStateList.valueOf(seekNeutral)
             b.tvPlayingIndicator.setIndicatorColor(colors.accent)
-            // tvBufferBar.setIndicatorColor is DELIBERATELY ABSENT — mirrors PlayerFragment. The buffer
-            // indicator is transparent in XML because DeterminateDrawable never assigns startFraction, so
-            // it could only draw from the left edge and put a solid line under the whole played portion,
-            // visible through the wave. A runtime setIndicatorColor here would override that XML. Only the
-            // rail is tinted. See the note on tv_buffer_bar in fragment_player_tv.xml.
-            b.tvBufferBar.trackColor = colors.onBackground
             b.tvCurrentTime.setTextColor(colors.onBackground)
             b.tvTotalTime.setTextColor(colors.onBackground)
             b.tvTrackTitle.setTextColor(colors.onBackground)

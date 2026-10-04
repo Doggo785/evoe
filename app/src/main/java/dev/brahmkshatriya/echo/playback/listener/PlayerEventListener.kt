@@ -372,12 +372,14 @@ class PlayerEventListener(
         }
         // ⚠⚠ SETTLE playWhenReady AT THE END OF THE QUEUE. ExoPlayer does NOT clear it on STATE_ENDED,
         // and nothing else here did either, so a queue that simply ran out sat at ENDED with the player
-        // still declaring INTENT TO PLAY — indefinitely. ONE FLAG, FIVE CONSUMERS, all wrong at once:
-        //   1. PlayerFragment:832 trackPlayPause.isChecked      -> the transport shows PAUSE
-        //   2. PlayerFragment:833 collapsedTrackPlayPause       -> the mini-bar shows PAUSE too
-        //   3. PlayerFragment.updateWaveMotion (via :776)       -> the seek wave keeps animating
-        //   4. PlayerFragment:838 playingIndicator.alpha        -> via `buffering && playWhenReady`
-        //   5. MainActivity.keepScreenOn (the `if (isTV)` observer) -> screen held awake on a finished queue
+        // still declaring INTENT TO PLAY — indefinitely. ONE FLAG, FOUR CONSUMERS, all wrong at once:
+        //   1. PlayerFragment trackPlayPause.isChecked            -> the transport shows PAUSE
+        //   2. PlayerFragment collapsedTrackPlayPause.isChecked   -> the mini-bar shows PAUSE too
+        //   3. PlayerFragment playingIndicator.alpha              -> via `buffering && playWhenReady`
+        //   4. MainActivity.keepScreenOn (the `if (isTV)` observer) -> screen held awake on a finished queue
+        // (View names, not line numbers: the numbers drift on every refactor.)
+        // (A fifth consumer, the old seek-wave motion, is gone with the wave: the straight bar has no
+        // motion state left to settle.)
         // Reported from device as "a PAUSE button offering to pause something that is not playing", which
         // is the one a user actually notices — the others read as cosmetic until you know the cause.
         //
@@ -410,20 +412,20 @@ class PlayerEventListener(
         // pause, meaning the foreground timeout was already running before this change.
         //
         // WHAT THIS DELIBERATELY DOES NOT CHANGE: the frozen 02:10/02:10 readout (PlayerUiListener stops
-        // the progress ticker for ENDED — correct, and only conspicuous because the wave next to it kept
-        // moving), and the replay-on-press behaviour, since ShufflePlayer.play()/setPlayWhenReady() still
-        // seekTo(0, 0) at ENDED. That branch carries its own never-monitored note and is the same family as
-        // the open cold-start autoplay bug: a queue parked at ENDED is what converts a phantom play request
-        // into audible playback of a finished track. Pausing does not remove ENDED, so that interaction is
-        // UNCHANGED — it is only the five playWhenReady consumers above that are fixed.
+        // the progress ticker for ENDED — correct), and the replay-on-press behaviour, since
+        // ShufflePlayer.play()/setPlayWhenReady() still seekTo(0, 0) at ENDED. That branch carries its own
+        // never-monitored note and is the same family as the open cold-start autoplay bug: a queue parked
+        // at ENDED is what converts a phantom play request into audible playback of a finished track.
+        // Pausing does not remove ENDED, so that interaction is UNCHANGED — it is only the four
+        // playWhenReady consumers above that are fixed.
         //
         // hasNextMediaItem() rather than a bare ENDED test: ENDED with a next item is a state the radio
         // append path can transiently produce, and pausing there would fight the append.
         //
         // ⚠⚠ NOT GATED ON !isTv, AND THE FIRST VERSION OF THIS WAS — THAT WAS A BUG. The reasoning was
         // "PlayerRadio.onPlaybackStateChanged already owns end-of-queue on TV". It owns the RADIO
-        // CONTINUATION there; it does not settle playWhenReady, and TV HAS THE SAME FIVE-CONSUMER PROBLEM:
-        //   PlayerTvFragment.updateWaveMotion   reads viewModel.playWhenReady.value   (its own tvSeekWaveBar)
+        // CONTINUATION there; it does not settle playWhenReady, and TV HAS THE SAME PROBLEM WITH
+        // ITS OWN CONSUMERS:
         //   PlayerTvFragment                    tvTrackPlayPause.isChecked = it
         //   PlayerTvFragment                    tvPlayingIndicator.alpha via buffering && it
         //   MainActivity                        `if (isTV) observe(playWhenReady) { keepScreenOn = it }`
@@ -438,7 +440,7 @@ class PlayerEventListener(
         // loadPlaylist() and only then seeks and plays, so on the empty-station data shape TV regenerates,
         // gets nothing, and sits at ENDED with no settle at all.
         // COST OF NOT GATING: when tvDriveRadio DOES append, this pause lands first and its `play()`
-        // restores playWhenReady a moment later — a brief glyph/wave flicker for the length of the fetch.
+        // restores playWhenReady a moment later — a brief play/pause glyph flicker for the length of the fetch.
         // That is honest state (nothing is playing during it) and it cannot break the append: pause()
         // leaves playbackState at ENDED, so tvDriveRadio's `if (STATE_ENDED && hasNextMediaItem())`
         // recovery still matches.

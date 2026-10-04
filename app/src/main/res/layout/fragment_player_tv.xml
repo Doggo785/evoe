@@ -120,74 +120,23 @@
 
             </LinearLayout>
 
-            <!-- Seek bar (buffer + slider overlapping) -->
+            <!-- Straight seek bar, Spotify style. The Slider draws both halves itself:
+                  active full-opacity amoled_fg, inactive amoled_fg at 30% (baked at runtime in
+                  PlayerTvFragment's colours block). No LinearProgressIndicator: the old buffer rail
+                  never displayed buffering and the wavy position indicator is gone. -->
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp">
 
-                <!-- Despite the id this draws ONLY the inactive rail; the buffer indicator is transparent
-                     for the same structural reason as the phone's bufferBar (see the full note in
-                     item_player_controls.xml): DeterminateDrawable assigns endFraction and never
-                     startFraction, so the indicator can only fill from the LEFT EDGE and drew a solid
-                     accent line under the whole played portion, showing through the wave. Reversal is two
-                     lines — this colour AND the setIndicatorColor call in PlayerTvFragment's colours block,
-                     which would otherwise override it at runtime.
-                     3dp rather than the phone's 2dp: the thinner-rail hierarchy transfers, but dp is
-                     density-independent and not DISTANCE-independent, so a 2dp line at three metres is far
-                     fainter than 2dp at arm's length. Half the 4dp+ wave without vanishing.
-                     KNOWN COST: no buffer display on the TV player. Real on a slow connection. -->
-                <!-- Mirrors item_player_controls.xml's bufferBar - amoled_fg with a 0.3 alpha carrying the
-                     played/unplayed distinction now that both halves share one hue. Rationale at
-                     PlayerFragment's seekWaveBar block. -->
-                <com.google.android.material.progressindicator.LinearProgressIndicator
-                    android:id="@+id/tv_buffer_bar"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:layout_marginHorizontal="12dp"
-                    android:alpha="0.3"
-                    app:indicatorColor="@android:color/transparent"
-                    app:indicatorTrackGapSize="0dp"
-                    app:trackColor="@color/amoled_fg"
-                    app:trackThickness="3dp" />
-
-                <!-- Wavy POSITION track — TV twin of item_player_controls.xml's seekWaveBar; see the note
-                     there for the ordering, the pinned layout_height and the accessibility rationale.
-                     Amplitude matches the phone's 6dp rather than Material's 3dp default: the shipped
-                     default is tuned for legibility at arm's length and read as too shallow on both
-                     surfaces. Extent is therefore trackThickness + waveAmplitude * 2 = 4 + 12 = 16dp, which
-                     the 20dp layout_height below still clears — RAISE THE PIN IF AMPLITUDE GOES HIGHER,
-                     or the crests clip silently (symptom: a flat-topped wave that will not get taller).
-                     focusable=false is TV-specific: tv_seek_bar sits in the D-pad chain via nextFocusUp/
-                     nextFocusDown, and a focusable sibling inserted between it and tv_buffer_bar could
-                     break that traversal. LinearProgressIndicator is not clickable so it should not take
-                     focus anyway — this is explicit because it is the one surface where it would matter.
-                     Ordering also keeps the Slider's focus halo (haloRadius 28dp, colorPrimary when
-                     focused per tv_slider_focus_selector) drawing above the wave rather than under it. -->
-                <com.google.android.material.progressindicator.LinearProgressIndicator
-                    android:id="@+id/tv_seek_wave_bar"
-                    style="@style/EchoLinearProgressIndicator.Wavy"
-                    android:layout_width="match_parent"
-                    android:layout_height="20dp"
-                    android:layout_gravity="center_vertical"
-                    android:layout_marginHorizontal="12dp"
-                    android:focusable="false"
-                    android:importantForAccessibility="no"
-                    app:indicatorColor="?attr/colorTertiary"
-                    app:waveAmplitude="6dp"
-                    app:wavelength="40dp"
-                    app:trackThickness="4dp" />
-
-                <!-- DELIBERATE DIVERGENCE from the phone, which uses a 4dp-wide BAR thumb. TV keeps the
+                <!-- DELIBERATE DIVERGENCE from the phone, which uses a 16dp circle: TV keeps the
                      24dp CIRCLE for three reasons: (1) the thumb doubles as the focus indicator and sits
                      inside a 28dp-radius colorPrimary halo (tv_slider_focus_selector) — a circle in a
-                     circle reads as one focus target, a 4dp line in a 56dp disc does not; (2) the halo is
-                     already at its geometric limit (28dp radius vs the Slider's 26dp half-height, with
-                     minTouchTargetSize=56dp making the room), and thumbHeight feeds widgetThickness in
-                     BaseSlider.onMeasure, so changing it risks clipping the halo; (3) the bar shape
-                     communicates a precise grabbable position, and TV never drags — it seeks in +/-10s
-                     D-pad steps. Do not "unify" these two thumbs. -->
+                     circle reads as one focus target; (2) the halo is already at its geometric limit
+                     (28dp radius vs the Slider's 26dp half-height), and thumbHeight feeds widgetThickness
+                     in BaseSlider.onMeasure, so changing it risks clipping the halo; (3) TV never drags —
+                     it seeks in +/-10s D-pad steps, so a larger thumb reads better at distance.
+                     Do not "unify" these two thumbs. -->
                 <com.google.android.material.slider.Slider
                     android:id="@+id/tv_seek_bar"
                     android:layout_width="match_parent"
@@ -204,11 +153,11 @@
                     app:haloRadius="28dp"
                     app:labelBehavior="gone"
                     app:minTouchTargetSize="56dp"
-                    app:thumbColor="?attr/colorTertiary"
+                    app:thumbColor="@color/amoled_fg"
                     app:thumbHeight="24dp"
                     app:thumbWidth="24dp"
-                    app:trackColorActive="@android:color/transparent"
-                    app:trackColorInactive="@android:color/transparent"
+                    app:trackColorActive="@color/amoled_fg"
+                    app:trackColorInactive="@color/amoled_fg"
                     app:trackHeight="4dp"
                     app:trackStopIndicatorSize="0dp" />
 
@@ -368,7 +317,7 @@
                     (12sp, ellipsized, ~210dp cap). TV keeps it as a full-width centred label BELOW the
                     transport row. A pill between two timestamps is unreadable at lean-back distance, and
                     TV has the vertical room the phone does not.
-                 2. SEEK THUMB SHAPE. Phone uses a 4x44dp BAR; TV keeps a 24dp CIRCLE. The thumb doubles
+                 2. SEEK THUMB SIZE. Phone uses a 16dp circle; TV keeps a 24dp CIRCLE. The thumb doubles
                     as the D-pad focus indicator inside a 28dp-radius halo, a circle-in-circle reads as one
                     focus target, and thumbHeight feeds widgetThickness so changing it risks clipping the
                     halo. See the note on tv_seek_bar.
@@ -380,9 +329,9 @@
                     skipped, or focusable and in the chain) and TV's toolbar has its own insets. If it is
                     ever added it gets its own pass, not a fold-in.
 
-                 What IS shared: the wavy seek bar and its ramp thresholds live in
-                 EchoLinearProgressIndicator.Wavy precisely because they are statements about the
-                 component, not per-surface tuning. Amplitude, thickness and thumb sizing are per-surface. -->
+                 What IS shared: the straight seek bar — Slider-drawn active track over a dimmed rail,
+                 neutral amoled_fg on both surfaces. Active/inactive tinting lives in the fragments'
+                 colours blocks; thumb sizing stays per-surface. -->
 
             <!-- Quality / stream info label -->
             <TextView

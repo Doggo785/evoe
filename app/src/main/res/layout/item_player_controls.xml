@@ -153,94 +153,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content">
 
-            <!-- Despite the id, this now draws ONLY the inactive rail: its buffer indicator is
-                 deliberately transparent. DeterminateDrawable.setIndicatorFraction() assigns endFraction
-                 and nothing ever assigns startFraction, so it keeps its 0f default — a LinearProgressIndicator
-                 can only ever fill from the LEFT EDGE to `progress`. With buffered >= position that put a
-                 solid accent line under the entire played portion, showing through the wave wherever the
-                 4dp band swung clear of the centre line: the "wave oscillating around a straight line".
-                 There is no way to draw only the useful playhead->buffered segment from one indicator
-                 (ProgressBar.min rescales the fraction, it does not offset the start).
-                 fillTrack() is called with (0f, 1f) unconditionally, so the rail stays continuous across
-                 the full width with the indicator transparent — no gap where it used to be.
-                 progress is still wired in PlayerFragment's progress observer so this is a two-line
-                 reversal: restore ?attr/colorTertiary here AND the setIndicatorColor call in
-                 PlayerFragment's playerColors block, which otherwise overrides this at runtime.
-                 KNOWN COST: no buffer display on the expanded player. Real on a slow connection.
-                 tv_buffer_bar carries the same change; keep the two in step. -->
-            <!-- RAIL COLOUR AND ALPHA ARE LOAD-BEARING TOGETHER - see PlayerFragment's seekWaveBar
-                 block for the full rationale.
-                 amoled_fg, NOT ?attr/colorOnSurface: the wave now uses amoled_fg too, and ONE SOURCE for
-                 both halves is the point - colorOnSurface is wallpaper-derived under DynamicColors on
-                 Android 12+, so the two halves could drift apart per device.
-                 THE ALPHA NOW CARRIES THE PLAYED/UNPLAYED DISTINCTION. While the wave was artwork-tinted,
-                 hue separated the halves and the 2dp-vs-4dp thickness step was a secondary cue. With both
-                 halves the same hue, thickness alone provides NO CONTRAST AT THE BOUNDARY - solid-versus-0.3
-                 is what separates them. Do not raise this back toward the wave's opacity, and do not equalise
-                 the thicknesses. -->
-            <com.google.android.material.progressindicator.LinearProgressIndicator
-                android:id="@+id/bufferBar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:layout_marginHorizontal="12dp"
-                android:alpha="0.3"
-                android:progress="40"
-                app:indicatorColor="@android:color/transparent"
-                app:indicatorTrackGapSize="0dp"
-                app:trackColor="@color/amoled_fg"
-                app:trackThickness="2dp" />
-
-            <!-- Wavy POSITION track. Ordered between bufferBar and seekBar deliberately: later children
-                 draw on top, so the wave covers the buffer's inactive track but the Slider's thumb still
-                 draws over the wave. Moving this after seekBar would paint the wave over the thumb.
-                 The Slider keeps ownership of touch, value and seeking; this draws the active line only,
-                 which is why seekBar's trackColorActive is transparent (and why PlayerFragment's
-                 playerColors block tints THIS view rather than the Slider's track).
-                 layout_height is pinned rather than wrap_content. LinearDrawingDelegate.getPreferredHeight()
-                 is `trackThickness + waveAmplitude * 2` (read from the 1.14.0 artifact), so the wave's real
-                 extent here is 4 + 20 = 24dp. THE PIN MUST BE RAISED WITH THE AMPLITUDE — at 28dp it clears
-                 24dp with slack, but an amplitude bump alone would start clipping the crests silently
-                 (symptom: a trapezoidal, flat-topped wave that does not get taller when you raise
-                 waveAmplitude). Keep the slack at 4dp: adjustCanvas offsets the drawing DOWN by
-                 max(0, (boundsHeight - preferredHeight) / 2), so changing the gap moves the wave off the
-                 rail's centre line.
-                 bufferBar above is deliberately THINNER than this (2dp vs 4dp): the wave and the rail never
-                 coexist spatially — left of the thumb the wave replaces the rail, right of it only the rail
-                 shows — so a thicker active over a thinner inactive reads as hierarchy, not as overhang.
-                 Matching them made the played and unplayed halves carry equal visual weight.
-                 The Slider's thumb is a 4dp x 44dp BAR, not a circle: both are Material's own
-                 m3_comp_slider_active_handle_width/_height.
-                 Material's 44:16 thumb-to-track ratio (2.75:1) would want ~66dp against this 24dp band, and
-                 that is DELIBERATELY not taken: thumbHeight feeds widgetThickness in BaseSlider.onMeasure,
-                 which sizes this Slider, which propagates to uiViewModel.playerControlsHeight and the
-                 collapse morph — 20->28->44 has already spent that budget twice and 66dp compounds it.
-                 44dp still clears the 24dp band by 10dp each side, so the thumb reads as standing over the
-                 crests rather than being swallowed, which is the property that actually matters.
-                 Width stays 4dp: thumbWidth is horizontal and does not feed widgetThickness, so it can be
-                 widened at any time at zero geometric risk; thumbHeight cannot.
-                 thumbHeight feeds widgetThickness in BaseSlider.onMeasure, which sizes this Slider, which
-                 propagates to uiViewModel.playerControlsHeight and the collapse morph. Whether it actually
-                 moves depends on whether minTouchTargetSize=90dp already dominates. The test is free: drag
-                 the player down and watch the cover morph — if it morphs correctly, the height did not move.
-                 importantForAccessibility=no: this duplicates the value the Slider already exposes through
-                 contentDescription, and TalkBack should not announce a second progress bar for it. -->
-            <com.google.android.material.progressindicator.LinearProgressIndicator
-                android:id="@+id/seekWaveBar"
-                style="@style/EchoLinearProgressIndicator.Wavy"
-                android:layout_width="match_parent"
-                android:layout_height="28dp"
-                android:layout_gravity="center"
-                android:layout_marginHorizontal="12dp"
-                android:importantForAccessibility="no"
-                app:indicatorColor="?attr/colorTertiary"
-                app:waveAmplitude="10dp"
-                app:wavelength="40dp"
-                app:trackThickness="4dp" />
-
-            <!-- Thumb is a 4dp x 20dp BAR (Material's own default handle width), not a circle. TV
-                 deliberately keeps a 24dp circle — see the note at fragment_player_tv.xml's tv_seek_bar
-                 for why, and do not unify the two. -->
+            <!-- Straight POSITION track, Spotify style. The Slider draws both halves itself:
+                  active full-opacity amoled_fg, inactive amoled_fg at 30% (baked at runtime in
+                  PlayerFragment's playerColors block, since the dimmed rail is theme-dependent).
+                  No LinearProgressIndicator here: the old buffer rail never displayed buffering
+                  (DeterminateDrawable fills from the left edge only) and the wavy position
+                  indicator is gone. Thumb is a 16dp circle; 16 + 52 + 52 = 120dp keeps the
+                  previous widgetThickness so playerControlsHeight and the collapse morph do
+                  not move. minTouchTargetSize=90dp keeps the grab region. -->
             <com.google.android.material.slider.Slider
                 android:id="@+id/seekBar"
                 android:layout_width="match_parent"
@@ -248,15 +168,15 @@
                 android:layout_marginStart="-3dp"
                 android:layout_marginEnd="-3dp"
                 android:contentDescription="@string/seekbar"
-                android:paddingVertical="38dp"
+                android:paddingVertical="52dp"
                 android:value="0.5"
                 app:labelBehavior="gone"
                 app:minTouchTargetSize="90dp"
-                app:thumbColor="?attr/colorTertiary"
-                app:thumbHeight="44dp"
-                app:thumbWidth="4dp"
-                app:trackColorActive="@android:color/transparent"
-                app:trackColorInactive="@android:color/transparent"
+                app:thumbColor="@color/amoled_fg"
+                app:thumbHeight="16dp"
+                app:thumbWidth="16dp"
+                app:trackColorActive="@color/amoled_fg"
+                app:trackColorInactive="@color/amoled_fg"
                 app:trackHeight="4dp"
                 app:trackStopIndicatorSize="0dp" />
         </FrameLayout>
@@ -286,12 +206,12 @@
              QualitySelectionBottomSheet. minHeight keeps that tap target at 48dp while the visual pill
              stays short via the background's vertical inset.
              minHeight is 40dp, NOT the usual 48dp: the seek FrameLayout is exactly widgetThickness tall
-             (BaseSlider sizes to max(minWidgetThickness, max(trackThickness, thumbHeight) + paddingTop +
-             paddingBottom) = 44 + 76 = 120dp here), the wave band is centred so it occupies 48-72dp, and a
-             48dp pill at bottom gravity occupies 72-120dp - touching it exactly. The timestamps beside it
-             are ~40dp and clear the wave by 8dp, so the pill was simply taller than its neighbours.
+             (BaseSlider sizes to max(trackThickness, thumbHeight) + paddingTop +
+             paddingBottom) = 16 + 104 = 120dp here), the 4dp track is centred so it occupies 58-62dp, and a
+             48dp pill at bottom gravity occupies 72-120dp - well clear of it. The timestamps beside it
+             are ~40dp and clear the track by ~18dp, so the pill was simply taller than its neighbours.
              Buying that clearance any other way costs block height: paddingVertical is additive to
-             widgetThickness, and only HALF of any increase becomes clearance (the wave centre moves down
+             widgetThickness, and only HALF of any increase becomes clearance (the track centre moves down
              by half, the pill by all of it), so 8dp of gap would cost 16dp of playerControlsHeight.
              40dp is defensible here because this is a SECONDARY affordance - the same QualitySelection
              sheet is reachable from the quality controls - and 48dp is a guideline for primary targets. -->
