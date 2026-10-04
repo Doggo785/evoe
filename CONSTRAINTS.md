@@ -88,5 +88,6 @@ Codes : `0` propre, `1` violation (bloque), `2` garde inexecutable (pas de merge
 |---|---|---|---|---|---|
 | E1 | `generic-api-key` | `deezer-extension/.../extension/Utils.kt:15` (`SECRET`, fragment Blowfish Deezer) | Constante publique documentee du chiffrement legacy Deezer, pas un credential personnel, non rotatable, requise au dechiffrement. Figee dans `.gitleaksbaseline`. | auteur | 2026-12-26 |
 | E2 | `gcp-api-key` x3 | historique git `app/google-services.json` (commits `2282f3f`, `e93c64e`, projet upstream `echo-92245`) | Fichier d'alors absent ensuite de l'arbre (gitignore, build sans). Depuis 2026-09-26 l'app utilise le projet perso `evoe-f4fa4` (`app/google-services.json` local, gitignore). Les cles exposees restent celles de l'upstream, non rotatables par nous. Fige dans `.gitleaksbaseline`. | auteur | 2026-12-26 |
+| E3 | mot de passe keystore en source | `app/build.gradle.kts` (`storePassword` / `keyPassword = "android"`) + `keystores/debug.keystore` versionne | Mot de passe publie du SDK (defaut universel, pas un secret) et cle debug de l'auteur : sans eux la CI signe chaque build avec une cle jetable et aucune release GitHub ne peut mettre a jour la precedente (prouve 2026-10-04). Voir `keystores/README.md`. | auteur | 2027-01-02 |
 
 Duree de vie max d'une exception : 90 jours. Sans owner ni echeance, c'est un refus.
