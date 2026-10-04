@@ -373,10 +373,11 @@ class PlayerEventListener(
         // ⚠⚠ SETTLE playWhenReady AT THE END OF THE QUEUE. ExoPlayer does NOT clear it on STATE_ENDED,
         // and nothing else here did either, so a queue that simply ran out sat at ENDED with the player
         // still declaring INTENT TO PLAY — indefinitely. ONE FLAG, FOUR CONSUMERS, all wrong at once:
-        //   1. PlayerFragment:832 trackPlayPause.isChecked      -> the transport shows PAUSE
-        //   2. PlayerFragment:833 collapsedTrackPlayPause       -> the mini-bar shows PAUSE too
-        //   3. PlayerFragment:838 playingIndicator.alpha        -> via `buffering && playWhenReady`
+        //   1. PlayerFragment trackPlayPause.isChecked            -> the transport shows PAUSE
+        //   2. PlayerFragment collapsedTrackPlayPause.isChecked   -> the mini-bar shows PAUSE too
+        //   3. PlayerFragment playingIndicator.alpha              -> via `buffering && playWhenReady`
         //   4. MainActivity.keepScreenOn (the `if (isTV)` observer) -> screen held awake on a finished queue
+        // (View names, not line numbers: the numbers drift on every refactor.)
         // (A fifth consumer, the old seek-wave motion, is gone with the wave: the straight bar has no
         // motion state left to settle.)
         // Reported from device as "a PAUSE button offering to pause something that is not playing", which
