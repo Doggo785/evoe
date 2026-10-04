@@ -98,4 +98,5 @@ Changelog:
 ## Workflows
 
 - `release-please.yml`: on push to `main`, opens or updates a release PR. Merging it creates the tag and the GitHub release.
+- `release-apk.yml`: on release published, builds `:app:assembleRelease` and attaches the single `...-release.apk` to the release. Fails when the tag disagrees with `version.txt` or the APK lacks the `-release` marker.
 - `pr-title-check.yml`: on PR open, edit, and sync, fails when the title does not parse as a Conventional Commit.

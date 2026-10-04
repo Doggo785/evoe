@@ -1,0 +1,104 @@
+name: release-apk
+
+# Attaches the sideloaded APK to every GitHub release.
+#
+# WHY THIS EXISTS: release-please only cuts the tag and the release notes.
+# Without this job the release page ships with zero assets, and the in-app
+# updater (AppUpdater, releases/latest + first *.apk asset) reports
+# "No APK assets found" instead of offering the update.
+#
+# WHAT IT UPLOADS: the ...-release.apk only. A debug APK was uploaded to
+# GitHub for months without anyone noticing because the two names were
+# identical apart from the variant marker (see archivesName in
+# app/build.gradle.kts). The verify step below fails the job unless the
+# single built file carries the -release marker.
+#
+# TAG AGREEMENT: the updater compares the release TAG against the running
+# versionName (SemVer.shouldOffer), never against the asset. So the tag and
+# version.txt must agree at upload time. The verify step fails the job when
+# they differ instead of shipping an update that reinstalls in a loop.
+
+on:
+  release:
+    types: [published]
+  # Manual path to prove the build stays green without touching a release.
+  # Uploads the APK as a workflow artifact instead of a release asset.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: versionCode comes from `git rev-list --count HEAD`,
+          # a shallow clone would report 1 and break upgrade monotonicity.
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
+
+      # No android-actions/setup-android: v3 crashes installing the obsolete
+      # 'tools' package (sdkmanager exit 1). Runners ship an SDK but sdkmanager
+      # is not on PATH; use the full path (mirrors quality.yml).
+      - name: Android platform 37 + build tools
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null
+          "$SDKMANAGER" "platforms;android-37.0" "build-tools;36.0.0" "build-tools;37.0.0"
+
+      # Runs the release guards as a side effect: verifyExtensionAbi runs as a
+      # finalizer of minify*WithR8 and verifyCleanKotlinOutput is a dependency
+      # of assembleRelease. Signed with the debug keystore on purpose (in-place
+      # upgrade continuity); no keystore secret needed.
+      - name: release apk (R8 + ABI and clean-output guards)
+        run: ./gradlew :app:assembleRelease
+
+      - name: verify exactly one release apk, tag matches version.txt
+        run: |
+          set -euo pipefail
+          APK_COUNT=$(ls app/build/outputs/apk/release/*.apk | wc -l)
+          if [ "$APK_COUNT" -ne 1 ]; then
+            echo "expected exactly 1 apk in app/build/outputs/apk/release/, found $APK_COUNT"
+            ls -la app/build/outputs/apk/release/
+            exit 1
+          fi
+          APK=$(ls app/build/outputs/apk/release/*.apk)
+          echo "built: $APK"
+          case "$APK" in
+            *-release.apk) ;;
+            *)
+              echo "refusing to upload $APK: the file must carry the -release marker"
+              exit 1
+              ;;
+          esac
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+            VERSION=$(cat version.txt)
+            if [ "${TAG#v}" != "$VERSION" ]; then
+              echo "tag $TAG disagrees with version.txt ($VERSION): the updater compares the tag"
+              exit 1
+            fi
+            echo "tag $TAG matches version.txt ($VERSION)"
+          fi
+
+      - name: upload APK to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          APK=$(ls app/build/outputs/apk/release/*.apk)
+          gh release upload "${{ github.event.release.tag_name }}" "$APK" --clobber
+
+      - name: upload APK as workflow artifact (manual runs only)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: app/build/outputs/apk/release/*.apk
