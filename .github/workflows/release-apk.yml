@@ -1,35 +1,28 @@
 name: release-apk
 
-# Attaches the sideloaded APK to every GitHub release.
+# Manual proof that the release build stays green, without touching any
+# release. Uploads the APK as a workflow artifact for inspection.
 #
-# WHY THIS EXISTS: release-please only cuts the tag and the release notes.
-# Without this job the release page ships with zero assets, and the in-app
-# updater (AppUpdater, releases/latest + first *.apk asset) reports
-# "No APK assets found" instead of offering the update.
+# There is deliberately NO `on: release` trigger here. Releases are cut
+# through the automatic token, which starts no new workflow runs (loop
+# protection) — observed 2026-10-04, when v3.2.0 published with zero assets
+# and no run started. The real upload lives in release-please.yml, inside the
+# run that creates the release. Do not re-add a release trigger here; it
+# would look alive and never fire.
 #
-# WHAT IT UPLOADS: the ...-release.apk only. A debug APK was uploaded to
-# GitHub for months without anyone noticing because the two names were
-# identical apart from the variant marker (see archivesName in
-# app/build.gradle.kts). The verify step below fails the job unless the
-# single built file carries the -release marker.
-#
-# TAG AGREEMENT: the updater compares the release TAG against the running
-# versionName (SemVer.shouldOffer), never against the asset. So the tag and
-# version.txt must agree at upload time. The verify step fails the job when
-# they differ instead of shipping an update that reinstalls in a loop.
+# Guards mirror the upload path: exactly one APK, and it must carry the
+# -release marker (a debug APK was once uploaded to GitHub unnoticed because
+# the names were identical apart from that marker — see archivesName in
+# app/build.gradle.kts).
 
 on:
-  release:
-    types: [published]
-  # Manual path to prove the build stays green without touching a release.
-  # Uploads the APK as a workflow artifact instead of a release asset.
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build-and-upload:
+  build-only:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,18 +47,18 @@ jobs:
 
       # Runs the release guards as a side effect: verifyExtensionAbi runs as a
       # finalizer of minify*WithR8 and verifyCleanKotlinOutput is a dependency
-      # of assembleRelease. Signed with the debug keystore on purpose (in-place
-      # upgrade continuity); no keystore secret needed.
+      # of assembleRelease. Signed with the pinned shared debug key
+      # (keystores/debug.keystore), same identity as the shipped releases.
       - name: release apk (R8 + ABI and clean-output guards)
         run: ./gradlew :app:assembleRelease
 
-      - name: verify exactly one release apk, tag matches version.txt
+      - name: verify exactly one release apk
         run: |
           set -euo pipefail
           # ls fails when the glob matches nothing, and pipefail + set -e would
-          # exit the script on that failure before the count check below runs.
-          # `|| true` keeps the pipeline alive so the check reports the
-          # failure with its own message instead of ls's raw error.
+          # exit the script before the count check below runs. `|| true` keeps
+          # the pipeline alive so the check reports the failure with its own
+          # message instead of ls's raw error.
           APK_COUNT=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | wc -l || true)
           if [ "$APK_COUNT" -ne 1 ]; then
             echo "expected exactly 1 apk in app/build/outputs/apk/release/, found $APK_COUNT"
@@ -77,31 +70,12 @@ jobs:
           case "$APK" in
             *-release.apk) ;;
             *)
-              echo "refusing to upload $APK: the file must carry the -release marker"
+              echo "refusing to keep $APK: the file must carry the -release marker"
               exit 1
               ;;
           esac
-          if [ "${{ github.event_name }}" = "release" ]; then
-            TAG="${{ github.event.release.tag_name }}"
-            VERSION=$(cat version.txt)
-            if [ "${TAG#v}" != "$VERSION" ]; then
-              echo "tag $TAG disagrees with version.txt ($VERSION): the updater compares the tag"
-              exit 1
-            fi
-            echo "tag $TAG matches version.txt ($VERSION)"
-          fi
 
-      - name: upload APK to release
-        if: github.event_name == 'release'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          APK=$(ls app/build/outputs/apk/release/*.apk)
-          gh release upload "${{ github.event.release.tag_name }}" "$APK" --clobber
-
-      - name: upload APK as workflow artifact (manual runs only)
-        if: github.event_name == 'workflow_dispatch'
+      - name: upload APK as workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
