@@ -117,6 +117,9 @@
     <string name="equalizer">Equalizer</string>
     <string name="equalizer_summary">Open the device equalizer settings</string>
     <string name="no_system_equalizer">No system equalizer available on this device</string>
+    <!-- Shown when no app can open the file picker (common on Android TV). Never surface
+         the raw ActivityNotFoundException. -->
+    <string name="no_file_picker">No file manager available on this device</string>
     <string name="some_tracks_couldnt_be_restored">Some tracks couldn\'t be restored — reopen from Library</string>
 
     <string name="stream_quality">Mobile Data Stream Quality</string>

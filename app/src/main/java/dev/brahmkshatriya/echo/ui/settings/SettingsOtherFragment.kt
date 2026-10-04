@@ -3,18 +3,18 @@ package dev.brahmkshatriya.echo.ui.settings
 import android.content.Context
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.preference.PreferenceFragmentCompat
 import dev.brahmkshatriya.echo.R
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toResourceImageHolder
+import dev.brahmkshatriya.echo.ui.common.SnackBarHandler.Companion.createSnack
 import dev.brahmkshatriya.echo.ui.extensions.ExtensionsViewModel
 import dev.brahmkshatriya.echo.utils.ContextUtils.SETTINGS_NAME
-import dev.brahmkshatriya.echo.utils.PermsUtils.registerActivityResultLauncher
 import dev.brahmkshatriya.echo.utils.exportSettings
 import dev.brahmkshatriya.echo.utils.importSettings
+import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.FilePreference
+import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.exportPreference
+import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.importPreference
 import dev.brahmkshatriya.echo.utils.ui.prefs.SwitchLongClickPreference
-import dev.brahmkshatriya.echo.utils.ui.prefs.TransitionPreference
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
 class SettingsOtherFragment : BaseSettingsFragment() {
@@ -50,44 +50,31 @@ class SettingsOtherFragment : BaseSettingsFragment() {
                 }
             }
 
-            TransitionPreference(context).apply {
-                key = "export"
-                title = getString(R.string.export_settings)
-                summary = getString(R.string.export_settings_summary)
-                layoutResource = R.layout.preference
-                isIconSpaceReserved = false
-                screen.addPreference(this)
-                setOnPreferenceClickListener {
-                    val contract = ActivityResultContracts.CreateDocument("application/json")
-                    requireActivity().registerActivityResultLauncher(contract) { uri ->
-                        uri?.let { context.exportSettings(it) }
-                    }.launch("echo-settings.json")
-                    true
-                }
-            }
+            exportPreference(
+                context,
+                FilePreference(
+                    key = "export",
+                    title = getString(R.string.export_settings),
+                    summary = getString(R.string.export_settings_summary)
+                ),
+                fileName = { "echo-settings.json" }
+            ) { uri ->
+                uri?.let { context.exportSettings(it) }
+            }.also { screen.addPreference(it) }
 
-            TransitionPreference(context).apply {
-                key = "import"
-                title = getString(R.string.import_settings)
-                summary = getString(R.string.import_settings_summary)
-                layoutResource = R.layout.preference
-                isIconSpaceReserved = false
-                screen.addPreference(this)
-                setOnPreferenceClickListener {
-                    val contract = ActivityResultContracts.OpenDocument()
-                    requireActivity().registerActivityResultLauncher(contract) {
-                        it?.let {
-                            if (context.importSettings(it)) requireActivity().recreate()
-                            else Toast.makeText(
-                                context,
-                                getString(R.string.invalid_settings_file),
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    }.launch(arrayOf("application/json"))
-                    true
+            importPreference(
+                context,
+                FilePreference(
+                    key = "import",
+                    title = getString(R.string.import_settings),
+                    summary = getString(R.string.import_settings_summary)
+                )
+            ) {
+                it?.let {
+                    if (context.importSettings(it)) requireActivity().recreate()
+                    else createSnack(R.string.invalid_settings_file)
                 }
-            }
+            }.also { screen.addPreference(it) }
         }
     }
 }
