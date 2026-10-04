@@ -1,13 +1,10 @@
 package dev.brahmkshatriya.echo.ui.extensions
 
 import android.app.Activity
-import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
@@ -35,13 +32,14 @@ import dev.brahmkshatriya.echo.playback.PlayerService.Companion.streamQualities
 import dev.brahmkshatriya.echo.ui.common.SnackBarHandler.Companion.createSnack
 import dev.brahmkshatriya.echo.ui.settings.BaseSettingsFragment
 import dev.brahmkshatriya.echo.utils.ContextUtils.observe
-import dev.brahmkshatriya.echo.utils.PermsUtils.registerActivityResultLauncher
 import dev.brahmkshatriya.echo.utils.Serializer.getSerialized
 import dev.brahmkshatriya.echo.utils.Serializer.putSerialized
 import dev.brahmkshatriya.echo.utils.exportExtensionSettings
 import dev.brahmkshatriya.echo.utils.importExtensionSettings
-import dev.brahmkshatriya.echo.utils.ui.UiUtils.hasCreateDocument
-import dev.brahmkshatriya.echo.utils.ui.UiUtils.hasOpenDocument
+import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.FilePreference
+import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.exportPreference
+import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.extensionSettingsFileName
+import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.importPreference
 import dev.brahmkshatriya.echo.utils.ui.prefs.LoadingPreference
 import dev.brahmkshatriya.echo.utils.ui.prefs.MaterialListPreference
 import dev.brahmkshatriya.echo.utils.ui.prefs.MaterialMultipleChoicePreference
@@ -174,67 +172,34 @@ class ExtensionInfoFragment : BaseSettingsFragment() {
                 }
                 state.settings.forEach { it.addPreferenceTo(screen) }
 
-                TransitionPreference(context).apply {
-                    key = "export"
-                    title = getString(R.string.export_settings)
-                    summary = getString(R.string.export_settings_summary)
-                    layoutResource = R.layout.preference
-                    isIconSpaceReserved = false
-                    screen.addPreference(this)
-                    isVisible = context.hasCreateDocument()
-                    setOnPreferenceClickListener {
-                        val contract = ActivityResultContracts.CreateDocument("application/json")
-                        val launcher =
-                            requireActivity().registerActivityResultLauncher(contract) { uri ->
-                                uri?.let {
-                                    context.exportExtensionSettings(extensionType, extensionId, it)
-                                }
-                            }
-                        // ActivityNotFound only: a missing picker is the one failure explained
-                        // here. Unregister on failure: the per-tap launcher would otherwise leak.
-                        try {
-                            launcher.launch(
-                                "echo-$extensionType-$extensionId-settings.json".lowercase()
-                            )
-                        } catch (_: ActivityNotFoundException) {
-                            launcher.unregister()
-                            createSnack(R.string.no_file_picker)
-                        }
-                        true
+                exportPreference(
+                    context,
+                    FilePreference(
+                        key = "export",
+                        title = getString(R.string.export_settings),
+                        summary = getString(R.string.export_settings_summary)
+                    ),
+                    fileName = { extensionSettingsFileName(extensionType, extensionId) }
+                ) { uri ->
+                    uri?.let {
+                        context.exportExtensionSettings(extensionType, extensionId, it)
                     }
-                }
+                }.also { screen.addPreference(it) }
 
-                TransitionPreference(context).apply {
-                    key = "import"
-                    title = getString(R.string.import_settings)
-                    summary = getString(R.string.import_settings_summary)
-                    layoutResource = R.layout.preference
-                    isIconSpaceReserved = false
-                    screen.addPreference(this)
-                    isVisible = context.hasOpenDocument()
-                    setOnPreferenceClickListener {
-                        val contract = ActivityResultContracts.OpenDocument()
-                        val launcher =
-                            requireActivity().registerActivityResultLauncher(contract) {
-                                it?.let {
-                                    if (context.importExtensionSettings(extensionType, extensionId, it))
-                                        requireActivity().recreate()
-                                    else Toast.makeText(
-                                        context,
-                                        getString(R.string.invalid_settings_file),
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                }
-                            }
-                        try {
-                            launcher.launch(arrayOf("application/json"))
-                        } catch (_: ActivityNotFoundException) {
-                            launcher.unregister()
-                            createSnack(R.string.no_file_picker)
-                        }
-                        true
+                importPreference(
+                    context,
+                    FilePreference(
+                        key = "import",
+                        title = getString(R.string.import_settings),
+                        summary = getString(R.string.import_settings_summary)
+                    )
+                ) {
+                    it?.let {
+                        if (context.importExtensionSettings(extensionType, extensionId, it))
+                            requireActivity().recreate()
+                        else createSnack(R.string.invalid_settings_file)
                     }
-                }
+                }.also { screen.addPreference(it) }
             }
         }
 

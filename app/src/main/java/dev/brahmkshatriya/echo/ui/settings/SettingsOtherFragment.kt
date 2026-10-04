@@ -1,25 +1,20 @@
 package dev.brahmkshatriya.echo.ui.settings
 
-import android.content.ActivityNotFoundException
 import android.content.Context
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.preference.PreferenceFragmentCompat
-import androidx.preference.PreferenceScreen
 import dev.brahmkshatriya.echo.R
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toResourceImageHolder
 import dev.brahmkshatriya.echo.ui.common.SnackBarHandler.Companion.createSnack
 import dev.brahmkshatriya.echo.ui.extensions.ExtensionsViewModel
 import dev.brahmkshatriya.echo.utils.ContextUtils.SETTINGS_NAME
-import dev.brahmkshatriya.echo.utils.PermsUtils.registerActivityResultLauncher
 import dev.brahmkshatriya.echo.utils.exportSettings
 import dev.brahmkshatriya.echo.utils.importSettings
-import dev.brahmkshatriya.echo.utils.ui.UiUtils.hasCreateDocument
-import dev.brahmkshatriya.echo.utils.ui.UiUtils.hasOpenDocument
+import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.FilePreference
+import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.exportPreference
+import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.importPreference
 import dev.brahmkshatriya.echo.utils.ui.prefs.SwitchLongClickPreference
-import dev.brahmkshatriya.echo.utils.ui.prefs.TransitionPreference
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
 class SettingsOtherFragment : BaseSettingsFragment() {
@@ -55,72 +50,31 @@ class SettingsOtherFragment : BaseSettingsFragment() {
                 }
             }
 
-            TransitionPreference(context).apply {
-                key = "export"
-                title = getString(R.string.export_settings)
-                summary = getString(R.string.export_settings_summary)
-                layoutResource = R.layout.preference
-                isIconSpaceReserved = false
-                screen.addPreference(this)
-                isVisible = context.hasCreateDocument()
-                setOnPreferenceClickListener {
-                    exportWithPicker(context)
-                    true
-                }
-            }
-
-            addImportPreference(screen, context)
-        }
-
-        private fun addImportPreference(screen: PreferenceScreen, context: Context) {
-            TransitionPreference(context).apply {
-                key = "import"
-                title = getString(R.string.import_settings)
-                summary = getString(R.string.import_settings_summary)
-                layoutResource = R.layout.preference
-                isIconSpaceReserved = false
-                screen.addPreference(this)
-                isVisible = context.hasOpenDocument()
-                setOnPreferenceClickListener {
-                    importWithPicker(context)
-                    true
-                }
-            }
-        }
-
-        private fun exportWithPicker(context: Context) {
-            val contract = ActivityResultContracts.CreateDocument("application/json")
-            val launcher = requireActivity().registerActivityResultLauncher(contract) { uri ->
+            exportPreference(
+                context,
+                FilePreference(
+                    key = "export",
+                    title = getString(R.string.export_settings),
+                    summary = getString(R.string.export_settings_summary)
+                ),
+                fileName = { "echo-settings.json" }
+            ) { uri ->
                 uri?.let { context.exportSettings(it) }
-            }
-            // ActivityNotFound only: a missing picker is the one failure explained here.
-            // Unregister on failure: the per-tap launcher would otherwise leak.
-            try {
-                launcher.launch("echo-settings.json")
-            } catch (_: ActivityNotFoundException) {
-                launcher.unregister()
-                createSnack(R.string.no_file_picker)
-            }
-        }
+            }.also { screen.addPreference(it) }
 
-        private fun importWithPicker(context: Context) {
-            val contract = ActivityResultContracts.OpenDocument()
-            val launcher = requireActivity().registerActivityResultLauncher(contract) {
+            importPreference(
+                context,
+                FilePreference(
+                    key = "import",
+                    title = getString(R.string.import_settings),
+                    summary = getString(R.string.import_settings_summary)
+                )
+            ) {
                 it?.let {
                     if (context.importSettings(it)) requireActivity().recreate()
-                    else Toast.makeText(
-                        context,
-                        getString(R.string.invalid_settings_file),
-                        Toast.LENGTH_LONG
-                    ).show()
+                    else createSnack(R.string.invalid_settings_file)
                 }
-            }
-            try {
-                launcher.launch(arrayOf("application/json"))
-            } catch (_: ActivityNotFoundException) {
-                launcher.unregister()
-                createSnack(R.string.no_file_picker)
-            }
+            }.also { screen.addPreference(it) }
         }
     }
 }
