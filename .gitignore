@@ -15,6 +15,9 @@ secrets.xml
 deezer-keys.properties
 *.jks
 *.keystore
+# Shared debug keystore (public SDK key, committed on purpose so CI signs
+# with the same identity as local builds — see keystores/README.md).
+!keystores/debug.keystore
 google-services.json
 
 *_log.txt
