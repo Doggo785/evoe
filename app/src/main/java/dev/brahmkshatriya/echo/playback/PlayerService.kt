@@ -272,6 +272,16 @@ class PlayerService : MediaLibraryService() {
         startForegroundCompat()
         setListener(MediaSessionServiceListener(this, getPendingIntent(this)))
 
+        // Peak-memory ticker, service half: covers restore/background OOMs no activity sees.
+        // No wakeups (delay suspends), lives exactly as long as scope, shares the atomic
+        // peak with the activity ticker so concurrent ticks cannot move it backwards.
+        scope.launch {
+            while (true) {
+                CrashKeys.onHeapTick()
+                delay(CrashKeys.HEAP_TICK_MS)
+            }
+        }
+
         val player = ShufflePlayer(exoPlayer, ::mapAaError)
         scope.launch(Dispatchers.Main) {
             mediaChangeFlow.collect { (o, n) -> player.onMediaItemChanged(o, n) }

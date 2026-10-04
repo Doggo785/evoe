@@ -51,12 +51,15 @@ import dev.brahmkshatriya.echo.ui.player.PlayerViewModel
 import dev.brahmkshatriya.echo.utils.ui.CheckBoxListener
 import dev.brahmkshatriya.echo.utils.ContextUtils.getSettings
 import dev.brahmkshatriya.echo.utils.ContextUtils.observe
+import dev.brahmkshatriya.echo.utils.CrashKeys
 import dev.brahmkshatriya.echo.utils.PermsUtils.checkAppPermissions
 import dev.brahmkshatriya.echo.utils.PermsUtils.checkBatteryOptimization
 import dev.brahmkshatriya.echo.utils.image.ImageUtils.loadInto
 import dev.brahmkshatriya.echo.utils.ui.UiUtils.isNightMode
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
@@ -178,6 +181,11 @@ open class MainActivity : AppCompatActivity() {
         // paused/stopped. playWhenReady (not isPlaying, which flickers off during buffering). TV-only —
         // phones are meant to sleep during audio playback (battery); the phone player manages its own case.
         if (isTV) observe(playerViewModel.playWhenReady) { binding.root.keepScreenOn = it }
+        // Peak-memory ticker, foreground half: checkpoints alone missed climbs between them,
+        // so the peak advances every 60s too. Foreground-only by construction (observe cancels
+        // below STARTED), no wakeups (delay suspends, never alarms), first emit is immediate.
+        // PlayerService runs the other half for sessions with no activity foreground.
+        observe(flow { while (true) { emit(Unit); delay(CrashKeys.HEAP_TICK_MS) } }) { CrashKeys.onHeapTick() }
         setupPlayerBehavior(
             uiViewModel, binding.playerFragmentContainer, isTV,
             binding.root.findViewById(R.id.navRailContainer)

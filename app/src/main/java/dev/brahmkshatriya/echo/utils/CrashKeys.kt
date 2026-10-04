@@ -116,6 +116,9 @@ object CrashKeys {
     private val heapFirstRecorded = AtomicBoolean(false)
     private val heapPeakMb = AtomicInteger(0)
 
+    /** Shared sampling interval for both heap tickers (activity + service). */
+    const val HEAP_TICK_MS = 60_000L
+
     private fun set(key: String, value: Int) {
         if (BuildConfig.HAS_FIREBASE) runCatching { FirebaseCrashlytics.getInstance().setCustomKey(key, value) }
     }
@@ -204,8 +207,9 @@ object CrashKeys {
      *    survives as the one order-independent value, because a running max does not care when it was
      *    sampled.
      *
-     * 2. ⚠️ THE HEAP IS ONLY EVER OBSERVED AT CHECKPOINTS — there is no continuous sampling anywhere in
-     *    this class. heapPeakMb is a running max over sampleHeap calls, and sampleHeap is called only from
+     * 2. ⚠️ THE HEAP IS OBSERVED AT CHECKPOINTS AND ON A ~60s TICK (onHeapTick, from a
+     *    foreground ticker and the service scope). heapPeakMb is a running max over sampleHeap
+     *    calls plus ticks, and sampleHeap is called only from
      *    onServiceCreate / onControllerConnected / onQueueBuild / onQueueSize / onFeedLoad /
      *    onExtensionSwitch. So "the peak was at a feed load" means only that the highest CHECKPOINT SAMPLE
      *    happened to be a feed load — and feed loads are by far the most frequent checkpoint. IT IS A
@@ -244,6 +248,29 @@ object CrashKeys {
         // Running max: written only when it actually advances, so a heap that plateaus stops writing. With
         // first + peak + last, "born high" (first ≈ peak ≈ last) is distinguishable from "climbed" (first low,
         // peak late), and heap_peak_at_age_s dates the climb.
+        updatePeak(usedMb)
+    }
+
+    private fun measureUsedMb(): Int {
+        val rt = Runtime.getRuntime()
+        return ((rt.totalMemory() - rt.freeMemory()) / (1024 * 1024)).toInt()
+    }
+
+    // One peak rule for sampleHeap and onHeapTick so the two cannot drift: same keys,
+    // same advance condition, same atomic. Writes nothing when the peak does not move.
+
+    /**
+     * Advances heap_peak_mb / heap_peak_at_age_s ONLY. Called from a ~60s ticker.
+     * Deliberately not sampleHeap: that also writes used/headroom pairs, which would
+     * destroy those pairs' checkpoint meaning (or cost two more keys). A tick that finds
+     * no new peak writes nothing. heap_first_* untouched. Safe for two concurrent
+     * tickers: the max is an AtomicInteger getAndUpdate, so it cannot go backwards.
+     */
+    fun onHeapTick() {
+        updatePeak(measureUsedMb())
+    }
+
+    private fun updatePeak(usedMb: Int) {
         val previousPeak = heapPeakMb.getAndUpdate { if (usedMb > it) usedMb else it }
         if (usedMb > previousPeak) {
             set("heap_peak_mb", usedMb)
