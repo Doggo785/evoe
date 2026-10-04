@@ -3,6 +3,7 @@ package dev.brahmkshatriya.echo.utils.ui
 import android.app.Activity
 import android.app.UiModeManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration.ORIENTATION_LANDSCAPE
 import android.content.res.Configuration.UI_MODE_NIGHT_MASK
@@ -60,6 +61,29 @@ object UiUtils {
 
     fun Context.isNightMode() =
         resources.configuration.uiMode and UI_MODE_NIGHT_MASK != UI_MODE_NIGHT_NO
+
+    /**
+     * Is there anything on this device that can handle a document picker?
+     * Create and open resolve independently: a device can offer one without the other.
+     * Depends on the manifest queries entries: without them resolveActivity returns null
+     * under API 30+ package visibility even when a handler exists. Cached per process;
+     * the tap-time ActivityNotFoundException catch is the backstop.
+     */
+    private var canCreateDocument: Boolean? = null
+    private var canOpenDocument: Boolean? = null
+
+    fun Context.hasCreateDocument() = canCreateDocument ?: resolves(
+        Intent(Intent.ACTION_CREATE_DOCUMENT)
+    ).also { canCreateDocument = it }
+
+    fun Context.hasOpenDocument() = canOpenDocument ?: resolves(
+        Intent(Intent.ACTION_OPEN_DOCUMENT)
+    ).also { canOpenDocument = it }
+
+    private fun Context.resolves(intent: Intent) = intent
+        .addCategory(Intent.CATEGORY_OPENABLE)
+        .setType("application/json")
+        .resolveActivity(packageManager) != null
 
     // Google TV reports UI_MODE_TYPE_TELEVISION but NOT FEATURE_LEANBACK, so the UiModeManager check must
     // come first (and stay) — FEATURE_LEANBACK alone would miss Google TV boxes.

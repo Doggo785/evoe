@@ -48,6 +48,18 @@
         <intent>
             <action android:name="android.media.action.DISPLAY_AUDIO_EFFECT_CONTROL_PANEL" />
         </intent>
+        <!-- So resolveActivity() can reliably detect document pickers under API 30+
+             package visibility; without these, UiUtils.hasCreateDocument/hasOpenDocument
+             return null on devices that can handle a picker, hiding the export/import
+             preferences. CREATE_DOCUMENT and OPEN_DOCUMENT resolve independently. -->
+        <intent>
+            <action android:name="android.intent.action.CREATE_DOCUMENT" />
+            <data android:mimeType="*/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.OPEN_DOCUMENT" />
+            <data android:mimeType="*/*" />
+        </intent>
     </queries>
 
     <application
