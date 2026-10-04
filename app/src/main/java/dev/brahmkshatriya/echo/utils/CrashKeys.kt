@@ -116,6 +116,9 @@ object CrashKeys {
     private val heapFirstRecorded = AtomicBoolean(false)
     private val heapPeakMb = AtomicInteger(0)
 
+    /** Shared sampling interval for both heap tickers (activity + service). */
+    const val HEAP_TICK_MS = 60_000L
+
     private fun set(key: String, value: Int) {
         if (BuildConfig.HAS_FIREBASE) runCatching { FirebaseCrashlytics.getInstance().setCustomKey(key, value) }
     }
@@ -245,12 +248,16 @@ object CrashKeys {
         // Running max: written only when it actually advances, so a heap that plateaus stops writing. With
         // first + peak + last, "born high" (first ≈ peak ≈ last) is distinguishable from "climbed" (first low,
         // peak late), and heap_peak_at_age_s dates the climb.
-        val previousPeak = heapPeakMb.getAndUpdate { if (usedMb > it) usedMb else it }
-        if (usedMb > previousPeak) {
-            set("heap_peak_mb", usedMb)
-            set("heap_peak_at_age_s", ageS())
-        }
+        updatePeak(usedMb)
     }
+
+    private fun measureUsedMb(): Int {
+        val rt = Runtime.getRuntime()
+        return ((rt.totalMemory() - rt.freeMemory()) / (1024 * 1024)).toInt()
+    }
+
+    // One peak rule for sampleHeap and onHeapTick so the two cannot drift: same keys,
+    // same advance condition, same atomic. Writes nothing when the peak does not move.
 
     /**
      * Advances heap_peak_mb / heap_peak_at_age_s ONLY. Called from a ~60s ticker.
@@ -260,8 +267,10 @@ object CrashKeys {
      * tickers: the max is an AtomicInteger getAndUpdate, so it cannot go backwards.
      */
     fun onHeapTick() {
-        val rt = Runtime.getRuntime()
-        val usedMb = ((rt.totalMemory() - rt.freeMemory()) / (1024 * 1024)).toInt()
+        updatePeak(measureUsedMb())
+    }
+
+    private fun updatePeak(usedMb: Int) {
         val previousPeak = heapPeakMb.getAndUpdate { if (usedMb > it) usedMb else it }
         if (usedMb > previousPeak) {
             set("heap_peak_mb", usedMb)

@@ -185,7 +185,7 @@ open class MainActivity : AppCompatActivity() {
         // so the peak advances every 60s too. Foreground-only by construction (observe cancels
         // below STARTED), no wakeups (delay suspends, never alarms), first emit is immediate.
         // PlayerService runs the other half for sessions with no activity foreground.
-        observe(flow { while (true) { emit(Unit); delay(HEAP_TICK_MS) } }) { CrashKeys.onHeapTick() }
+        observe(flow { while (true) { emit(Unit); delay(CrashKeys.HEAP_TICK_MS) } }) { CrashKeys.onHeapTick() }
         setupPlayerBehavior(
             uiViewModel, binding.playerFragmentContainer, isTV,
             binding.root.findViewById(R.id.navRailContainer)
@@ -446,7 +446,6 @@ open class MainActivity : AppCompatActivity() {
         }
 
         const val BACK_ANIM = "back_anim"
-        const val HEAP_TICK_MS = 60_000L
 
         // Picks the Back-animation launcher variant when the BACK_ANIM pref is on — but Back's <activity> is
         // android:enabled="false" by default and only ENABLED at runtime by the settings toggle
