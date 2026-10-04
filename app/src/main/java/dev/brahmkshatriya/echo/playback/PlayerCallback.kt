@@ -1164,6 +1164,19 @@ class PlayerCallback(
             )
         }.build()
         session.with { replaceMediaItem(index, newItem) }
+        // The player path had no confirmation at all: a like from the heart,
+        // the sheet, the widget or a system controller now announces itself, so a
+        // write the user did not make is visible the second it happens. Announced
+        // here, right after the confirmed extension write above — never before it,
+        // so a failed write cannot congratulate — and ahead of the best-effort
+        // disk touch-up below, so feedback never waits on I/O.
+        app.messageFlow.emit(
+            Message(
+                app.context.getString(
+                    if (liked) R.string.liked_x else R.string.unliked_x, track.title
+                )
+            )
+        )
         // FIX 2026-10-04 stale player heart: keep the durable media-state entry in
         // step with the write above, otherwise the next preferCache/fallback load
         // serves the pre-like value (proven: player showed unliked for server-liked
