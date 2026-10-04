@@ -86,8 +86,9 @@ Files:
 
 APK version split:
 
-- `versionCode` and `versionName` in `app/build.gradle.kts` derive from the git commit count (`3.1.NNNNN`). That stays as is. It keeps Play and sideload upgrades monotonic.
-- The GitHub release version (semver in the tag, `vX.Y.Z`) is consumer-facing. It comes from release-please tags. The two numbers do not need to match.
+- `versionCode` in `app/build.gradle.kts` is the git commit count. That stays as is. It keeps Play and sideload upgrades monotonic.
+- `versionName` is `v<version.txt>_<hash>(<count>)`: the release version from `version.txt` (rewritten by release-please in every release PR) plus the commit hash and count as a suffix.
+- The GitHub release version (semver in the tag, `vX.Y.Z`) is consumer-facing. The tag must equal `v` plus the `version.txt` content: `release-apk.yml` fails the upload when they differ, because the in-app updater compares the tag against the running `versionName` prefix. The `versionCode` count and the hash/count suffix never need to match the tag.
 
 Changelog:
 
@@ -98,4 +99,5 @@ Changelog:
 ## Workflows
 
 - `release-please.yml`: on push to `main`, opens or updates a release PR. Merging it creates the tag and the GitHub release.
+- `release-apk.yml`: on release published, builds `:app:assembleRelease` and attaches the single `...-release.apk` to the release. Fails when the tag disagrees with `version.txt` or the APK lacks the `-release` marker.
 - `pr-title-check.yml`: on PR open, edit, and sync, fails when the title does not parse as a Conventional Commit.
