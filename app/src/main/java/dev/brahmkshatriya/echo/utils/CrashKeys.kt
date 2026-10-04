@@ -204,8 +204,9 @@ object CrashKeys {
      *    survives as the one order-independent value, because a running max does not care when it was
      *    sampled.
      *
-     * 2. ⚠️ THE HEAP IS ONLY EVER OBSERVED AT CHECKPOINTS — there is no continuous sampling anywhere in
-     *    this class. heapPeakMb is a running max over sampleHeap calls, and sampleHeap is called only from
+     * 2. ⚠️ THE HEAP IS OBSERVED AT CHECKPOINTS AND ON A ~60s TICK (onHeapTick, from a
+     *    foreground ticker and the service scope). heapPeakMb is a running max over sampleHeap
+     *    calls plus ticks, and sampleHeap is called only from
      *    onServiceCreate / onControllerConnected / onQueueBuild / onQueueSize / onFeedLoad /
      *    onExtensionSwitch. So "the peak was at a feed load" means only that the highest CHECKPOINT SAMPLE
      *    happened to be a feed load — and feed loads are by far the most frequent checkpoint. IT IS A
@@ -244,6 +245,23 @@ object CrashKeys {
         // Running max: written only when it actually advances, so a heap that plateaus stops writing. With
         // first + peak + last, "born high" (first ≈ peak ≈ last) is distinguishable from "climbed" (first low,
         // peak late), and heap_peak_at_age_s dates the climb.
+        val previousPeak = heapPeakMb.getAndUpdate { if (usedMb > it) usedMb else it }
+        if (usedMb > previousPeak) {
+            set("heap_peak_mb", usedMb)
+            set("heap_peak_at_age_s", ageS())
+        }
+    }
+
+    /**
+     * Advances heap_peak_mb / heap_peak_at_age_s ONLY. Called from a ~60s ticker.
+     * Deliberately not sampleHeap: that also writes used/headroom pairs, which would
+     * destroy those pairs' checkpoint meaning (or cost two more keys). A tick that finds
+     * no new peak writes nothing. heap_first_* untouched. Safe for two concurrent
+     * tickers: the max is an AtomicInteger getAndUpdate, so it cannot go backwards.
+     */
+    fun onHeapTick() {
+        val rt = Runtime.getRuntime()
+        val usedMb = ((rt.totalMemory() - rt.freeMemory()) / (1024 * 1024)).toInt()
         val previousPeak = heapPeakMb.getAndUpdate { if (usedMb > it) usedMb else it }
         if (usedMb > previousPeak) {
             set("heap_peak_mb", usedMb)

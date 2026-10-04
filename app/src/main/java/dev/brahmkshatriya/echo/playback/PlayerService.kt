@@ -272,6 +272,16 @@ class PlayerService : MediaLibraryService() {
         startForegroundCompat()
         setListener(MediaSessionServiceListener(this, getPendingIntent(this)))
 
+        // Peak-memory ticker, service half: covers restore/background OOMs no activity sees.
+        // No wakeups (delay suspends), lives exactly as long as scope, shares the atomic
+        // peak with the activity ticker so concurrent ticks cannot move it backwards.
+        scope.launch {
+            while (true) {
+                CrashKeys.onHeapTick()
+                delay(HEAP_TICK_MS)
+            }
+        }
+
         val player = ShufflePlayer(exoPlayer, ::mapAaError)
         scope.launch(Dispatchers.Main) {
             mediaChangeFlow.collect { (o, n) -> player.onMediaItemChanged(o, n) }
@@ -814,6 +824,7 @@ class PlayerService : MediaLibraryService() {
         // holding 40-60 MB for a quarter less time than a 120 s window would. Expiring mid-storm is not a
         // correctness risk (see scheduleRestoreSnapshotRelease) — it costs one disk read and rebuild.
         private const val RESTORE_SNAPSHOT_TTL_MS = 90_000L
+        private const val HEAP_TICK_MS = 60_000L
 
         const val CLOSE_PLAYER = "close_player"
         private const val ACTION_CLEAR_QUEUE = "dev.doggo785.evoe.CLEAR_QUEUE"
