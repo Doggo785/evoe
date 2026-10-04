@@ -64,6 +64,7 @@ import androidx.media3.ui.CaptionStyleCompat.EDGE_TYPE_OUTLINE
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
+import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.slider.Slider
 import androidx.core.content.ContextCompat
 import dev.brahmkshatriya.echo.R
@@ -1122,7 +1123,15 @@ class PlayerFragment : Fragment() {
         }
 
         val binding = binding!!
-        binding.playerControls.trackHeart.addOnCheckedStateChangedListener(likeListener)
+        // FIX 2026-10-04 phantom likes: the heart writes on CLICK only. The previous
+        // OnCheckedStateChangedListener also fired on framework view-state restoration
+        // after recreation (proven: three phantom likes ~19ms after a restored
+        // view_created, pressed=false), liking whatever was playing. Clicks come only
+        // from genuine user activation (touch, DPAD, TalkBack); programmatic sets and
+        // restoration never fire OnClickListener. State syncs from data below.
+        binding.playerControls.trackHeart.setOnClickListener { view ->
+            viewModel.likeCurrent((view as MaterialCheckBox).isChecked)
+        }
         // Deliberately not using observe()/flowWithLifecycle here: that restarts collection
         // (and redelivers the StateFlow's current value) on every STARTED re-entry, which can
         // fire multiple times in quick succession during Activity recreation. This must collect
@@ -1444,8 +1453,6 @@ class PlayerFragment : Fragment() {
         }
     }
 
-    private val likeListener = CheckBoxListener { viewModel.likeCurrent(it) }
-
     // Ken Burns background is driven by CURRENT TRACK IDENTITY (loadCurrentBackground), like the mini bar —
     // NOT by the attached page's coverDrawable, which is null/detached after a screen-off auto-advance and
     // left it stale + downstream of the pager. Guarded by lastBlurredItemId so re-applying on every resume is
@@ -1723,9 +1730,9 @@ class PlayerFragment : Fragment() {
 
             trackArtist.text = span
             trackArtist.movementMethod = LinkMovementMethod.getInstance()
-            likeListener.enabled = false
+            // Plain sync, no guard needed: writes fire on click only (see setup above),
+            // so programmatic sets can never trigger a like.
             trackHeart.isChecked = item.isLiked
-            likeListener.enabled = true
             lifecycleScope.launch {
                 val isTrackClient = viewModel.isLikeClient(item.extensionId)
                 trackHeart.isVisible = isTrackClient

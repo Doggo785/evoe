@@ -48,6 +48,7 @@ import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.di.App
 import dev.brahmkshatriya.echo.download.Downloader
 import dev.brahmkshatriya.echo.extensions.ExtensionLoader
+import dev.brahmkshatriya.echo.extensions.cache.Cached
 import dev.brahmkshatriya.echo.history.HistoryRepository
 import dev.brahmkshatriya.echo.ui.player.PlayerViewModel.Companion.KEEP_QUEUE
 import dev.brahmkshatriya.echo.extensions.ExtensionUtils.get
@@ -1163,6 +1164,11 @@ class PlayerCallback(
             )
         }.build()
         session.with { replaceMediaItem(index, newItem) }
+        // FIX 2026-10-04 stale player heart: keep the durable media-state entry in
+        // step with the write above, otherwise the next preferCache/fallback load
+        // serves the pre-like value (proven: player showed unliked for server-liked
+        // tracks until a fresh page load corrected it).
+        runCatching { Cached.updateLikeState(app.awaitFileCache(), item.extensionId, track.id, liked) }
         return SessionResult(RESULT_SUCCESS, Bundle().apply { putBoolean("liked", liked) })
     }
 

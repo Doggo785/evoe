@@ -150,6 +150,37 @@ object Cached {
         }
     }
 
+    // FIX 2026-10-04 stale player heart: the playback path resolves through
+    // preferCache and the durable media-state fallback below, which is written on
+    // fresh loads but never on likes. Without this, a just-liked track keeps
+    // serving its pre-like isLiked (and vice versa) until something re-resolves
+    // it — proven by the player showing unliked for server-liked tracks. Called
+    // after every successful player-path like write. Best-effort: a missing entry
+    // simply means nothing stale is cached. Takes the FileKache (not App) so the
+    // read-modify-write is unit-testable on plain JVM without Android.
+    suspend fun updateLikeState(
+        fileCache: FileKache, extensionId: String, itemId: String, liked: Boolean,
+    ) {
+        runCatching {
+            val id = "media-$extensionId-$itemId-state"
+            val state = fileCache.getData<MediaState.Loaded<Track>>(id).getOrNull()
+                ?: return@runCatching
+            fileCache.putData(
+                id, MediaState.Loaded(
+                    extensionId = state.extensionId,
+                    item = state.item,
+                    isFollowed = state.isFollowed,
+                    followers = state.followers,
+                    isSaved = state.isSaved,
+                    isLiked = liked,
+                    isHidden = state.isHidden,
+                    showRadio = state.showRadio,
+                    showShare = state.showShare
+                )
+            )
+        }
+    }
+
     // File read + JSON decode must not run on the caller thread: this is suspend
     // but sets no dispatcher, and Paging calls load() on Main (flowOn only moves
     // the container flow, not the inner page loads). ANR seen decoding a cached page.

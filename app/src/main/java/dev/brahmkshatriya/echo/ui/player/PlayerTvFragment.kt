@@ -23,6 +23,7 @@ import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.REPEAT_MODE_ONE
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
+import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.slider.Slider
 import kotlinx.coroutines.flow.combine
 import androidx.core.content.ContextCompat
@@ -143,11 +144,13 @@ class PlayerTvFragment : Fragment() {
         updateWaveMotion()
     }
 
-    private val likeListener = CheckBoxListener { viewModel.likeCurrent(it) }
-
     private fun configureControls() {
         val binding = binding!!
-        binding.tvTrackHeart.addOnCheckedStateChangedListener(likeListener)
+        // FIX 2026-10-04 phantom likes: writes fire on CLICK only — same as the phone
+        // heart (see PlayerFragment). Restoration and programmatic sets never fire clicks.
+        binding.tvTrackHeart.setOnClickListener { view ->
+            viewModel.likeCurrent((view as MaterialCheckBox).isChecked)
+        }
 
         // Track metadata
         observe(viewModel.playerState.current) { current ->
@@ -166,9 +169,8 @@ class PlayerTvFragment : Fragment() {
                 if (itemContext != null) getString(R.string.playing_from) else null
             binding.tvToolbar.subtitle = itemContext?.title
 
-            likeListener.enabled = false
+            // Plain sync, no guard needed: writes fire on click only (see setup above).
             binding.tvTrackHeart.isChecked = item.isLiked
-            likeListener.enabled = true
             lifecycleScope.launch {
                 binding.tvTrackHeart.isVisible = viewModel.isLikeClient(item.extensionId)
             }
