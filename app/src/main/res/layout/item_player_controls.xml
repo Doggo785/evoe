@@ -53,6 +53,11 @@
                 tools:text="@tools:sample/lorem/random" />
         </LinearLayout>
 
+        <!-- saveEnabled=false: FIX 2026-10-04 phantom likes. Framework view-state
+            restoration re-checked this box after recreation and the checked-change
+            listener fired it as a user tap, liking whatever was playing (proven:
+            three phantom likes ~19ms after a restored view_created, pressed=false).
+            State always re-syncs from the current item in PlayerFragment. -->
         <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/trackHeart"
             android:layout_width="64dp"
@@ -60,7 +65,8 @@
             android:background="@drawable/ripple_60dp"
             android:button="@drawable/anim_heart_36dp"
             android:contentDescription="@string/like"
-            app:buttonTint="@color/button_player_heart" />
+            app:buttonTint="@color/button_player_heart"
+            android:saveEnabled="false" />
 
         <!-- Overflow, moved down from the toolbar's menu (more_menu / menu_more) so it sits beside the
              heart rather than in the top right, which the extension icon now occupies. It is a plain

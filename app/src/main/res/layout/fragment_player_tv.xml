@@ -98,6 +98,9 @@
 
                 </LinearLayout>
 
+                <!-- saveEnabled=false: FIX 2026-10-04 phantom likes, same as the
+                    phone trackHeart in item_player_controls.xml. State re-syncs
+                    from the current item in PlayerTvFragment. -->
                 <com.google.android.material.checkbox.MaterialCheckBox
                     android:id="@+id/tv_track_heart"
                     android:layout_width="64dp"
@@ -112,6 +115,7 @@
                     android:nextFocusUp="@+id/tv_minimize_button"
                     android:nextFocusLeft="@id/tv_track_heart"
                     android:nextFocusRight="@id/tv_track_heart"
+                    android:saveEnabled="false"
                     app:buttonTint="@color/button_player" />
 
             </LinearLayout>
