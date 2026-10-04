@@ -188,53 +188,13 @@ class PlayerFragment : Fragment() {
         configureBackgroundPlayerView()
     }
 
-    // Wave motion follows the SAME discipline as the Ken Burns background below: a lifecycle pair plus the
-    // playerSheetState observer, with a third condition (isPlaying) that Ken Burns does not have.
-    // The "on" values are captured from the inflated view rather than duplicated as constants here, so the
-    // style stays the single source of truth for amplitude and speed.
-    private var waveSpeedPx = -1
-    private var waveAmplitudePx = -1
-    // NOT Fragment.isResumed: that reports mState and its value during onPause is an ordering detail
-    // of FragmentStateManager. This is our own flag, set explicitly either side.
-    private var waveResumed = false
-
-    // Read the gating note in styles.xml (EchoLinearProgressIndicator.Wavy) before changing this.
-    // Short version: the phase animator is never cancelled and does not need to be. setWaveSpeed(0)
-    // stops every invalidation, and setWaveAmplitude(0) trips the hasWavyEffect gate so flattening on
-    // pause IS the stop. Do not "fix" this by reaching for the animator.
-    private fun updateWaveMotion() {
-        val wave = binding?.playerControls?.seekWaveBar ?: return
-        if (waveSpeedPx < 0) {
-            waveSpeedPx = wave.waveSpeed
-            waveAmplitudePx = wave.waveAmplitude
-        }
-        // playWhenReady, NOT Current.isPlaying. isPlaying is `player.isPlaying && state == READY`, and
-        // Media3's own isPlaying additionally requires playbackSuppressionReason == NONE — so it goes
-        // FALSE on buffering, on any seek that rebuffers, and on every track transition. Gating on it
-        // flattened the wave on all of those and left it flat until an unrelated event happened to run
-        // this again. playWhenReady tracks the player's INTENT and only changes on a real pause.
-        // MainActivity:109 picked the same signal for keepScreenOn, with the same reasoning.
-        val playing = viewModel.playWhenReady.value
-        val expanded = uiViewModel.playerSheetState.value == STATE_EXPANDED
-        // Amplitude tracks PLAYING only: a paused player shows a flat line, which is what the system
-        // media notification does. Speed additionally requires the wave to be on screen and the fragment
-        // resumed — collapsed is the one state the library does not handle for us, because the sheet's
-        // views stay attached and window-visible when it slides down.
-        wave.waveAmplitude = if (playing) waveAmplitudePx else 0
-        wave.waveSpeed = if (playing && expanded && waveResumed) waveSpeedPx else 0
-    }
-
     override fun onPause() {
         super.onPause()
-        waveResumed = false
-        updateWaveMotion()
         binding?.bgImage?.pause()
     }
 
     override fun onResume() {
         super.onResume()
-        waveResumed = true
-        updateWaveMotion()
         // TRACE (2026-08-29, temporary, GladixArt). One line per wake for the VISIBLE page only, recording
         // which of the three outcomes the cover took: no request and which guard declined, or a request
         // and where its bytes came from. Posted so it runs AFTER the wake traversal, i.e. after bind and
@@ -517,7 +477,6 @@ class PlayerFragment : Fragment() {
                 STATE_EXPANDED -> binding.bgImage.resume()
                 else -> binding.bgImage.pause()
             }
-            updateWaveMotion()
             // Canvas/video is fullscreen-only — re-run applyPlayer() for the new sheet state: on collapse it
             // DETACHES the video surface (playerView.player = null) so the Canvas/video stops rendering in the
             // mini-bar (surface-only — audio keeps playing via the service player); on expand it re-attaches
@@ -1221,13 +1180,6 @@ class PlayerFragment : Fragment() {
             }
         }
 
-        // The wave's primary driver, and deliberately a GATED observer rather than a raw launch:
-        // ContextUtils.observe is flowWithLifecycle(STARTED), so it re-subscribes on every ON_START and a
-        // StateFlow replays its current value. That makes this LEVEL-driven — a missed edge self-corrects
-        // at the next wake instead of leaving the wave wrong indefinitely, which is what the previous
-        // edge-only wiring off the `current` collector did.
-        observe(viewModel.playWhenReady) { updateWaveMotion() }
-
         // ⚠️ DELIBERATELY UNGATED — DO NOT REPLACE WITH observe(). 2026-09-04.
         //
         // WHAT THE GATE WAS FOR, AND HOW I KNOW: nothing specific. `observe` is ContextUtils.observe =
@@ -1306,8 +1258,6 @@ class PlayerFragment : Fragment() {
             }
             binding.playerControls.run {
                 if (!seekBar.isPressed) {
-                    bufferBar.progress = buff.toInt()
-                    seekWaveBar.progress = curr.toInt()
                     seekBar.value = max(0f, min(curr.toFloat(), seekBar.valueTo))
                     trackCurrentTime.text = curr.toTimeString()
                 }
@@ -1320,7 +1270,7 @@ class PlayerFragment : Fragment() {
         // current arrives, so the `?: current.track.duration` fallback actually evaluates instead of being
         // stranded behind a totalDuration emission that never comes. Precedence stays totalDuration-first.
         // DELIBERATE MIRROR of PlayerTvFragment's duration observer — keep the two in sync; each writes its
-        // own views (phone: playerControls + collapsed bar; TV: tvSeekBar/tvTotalTime/tvBufferBar).
+        // own views (phone: playerControls + collapsed bar; TV: tvSeekBar/tvTotalTime).
         observe(combine(viewModel.totalDuration, viewModel.playerState.current) { total, current ->
             total ?: current?.track?.duration ?: 0L
         }) { duration ->
@@ -1329,8 +1279,6 @@ class PlayerFragment : Fragment() {
                 collapsedBuffer.max = duration.toInt()
             }
             binding.playerControls.run {
-                bufferBar.max = duration.toInt()
-                seekWaveBar.max = duration.toInt()
                 seekBar.apply {
                     value = max(0f, min(value, duration.toFloat()))
                     valueTo = 1f + duration
@@ -1373,12 +1321,6 @@ class PlayerFragment : Fragment() {
                 addOnChangeListener { _, value, fromUser ->
                     if (fromUser) {
                         trackCurrentTime.text = value.toLong().toTimeString()
-                        // The wave is a separate view from the Slider, so it is NOT carried along by the
-                        // drag. The progress observer above is gated on !seekBar.isPressed, so during a
-                        // gesture nothing else updates it and the wave would visibly lag the thumb for the
-                        // whole drag. Drive it from here so the two stay together; fromUser keeps this off
-                        // the programmatic path, which the observer already owns.
-                        seekWaveBar.progress = value.toInt()
                     }
                 }
                 addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
@@ -1547,10 +1489,12 @@ class PlayerFragment : Fragment() {
                 // collapsedBuffer.setIndicatorColor is DELIBERATELY ABSENT - do not restore it without
                 // also changing the layout. collapsedBuffer's indicator is transparent in XML, and a
                 // runtime setIndicatorColor here would override that and paint the buffer line straight
-                // back. Only the rail is tinted now. Same treatment as bufferBar below and tvBufferBar in
-                // PlayerTvFragment; keep all three in step.
+                // back. Only the rail is tinted now. The expanded phone and TV players draw their
+                // own rail via the Slider's inactive tint (see their colours blocks); collapsed is the
+                // only surface still carrying a LinearProgressIndicator rail.
                 // BUFFERING IS NOW SHOWN NOWHERE IN THE APP - the full screen and TV players lost it in
-                // 1055 for the wavy seek bar, and this was the last surface still drawing one. See the
+                // 1055 (the indicator could only fill from the left edge, painting a solid line under
+                // the played portion), and this was the last surface still drawing one. See the
                 // note on collapsed_buffer in item_player_collapsed_controls.xml for the full reasoning
                 // and for why this view still exists (it carries the rail, its 0.5 alpha and its zero
                 // gap size, none of which can move to collapsed_seekbar).
@@ -1560,9 +1504,8 @@ class PlayerFragment : Fragment() {
             }
 
             binding.playerControls.run {
-                // The accent goes on the WAVE, not the Slider's active track. seekBar.trackColorActive is
-                // transparent in XML so the wave is the only thing drawing the position line — but a
-                // runtime tint would override that XML and paint a straight line back under the wave.
+                // The Slider draws its own straight active track. The inactive rail is the same
+                // neutral at 30%, baked here because the dimmed colour is theme-dependent.
                 // ⚠⚠ NEUTRAL BY DESIGN - DO NOT RE-TINT THIS FROM PlayerColors.accent.
                 // It will look plain next to the rest of the player and that is the trade, made knowingly.
                 //
@@ -1571,16 +1514,15 @@ class PlayerFragment : Fragment() {
                 // ImageUtils.loadBlurred; accent via Palette in PlayerColors.getColorsFrom). On a monochrome
                 // cover both land in the same region of colour space BY CONSTRUCTION, and no swatch choice
                 // escapes it - lightVibrant, darkVibrant and the muted fallbacks are all drawn from the same
-                // pixels. OBSERVED: a warm red cover (Ray Lamontagne, "Supernova") rendered the played wave
+                // pixels. OBSERVED: a warm red cover (Ray Lamontagne, "Supernova") rendered the played bar
                 // as dark red on red - a smudge, not a progress indicator - while the theme-derived rail
                 // beside it stayed perfectly legible. The two halves of one control, opposite problems,
                 // same track.
                 //
-                // ⚠️ 2. THE PAUSED STATE IS THE ACCESSIBILITY BASELINE, NOT THE PLAYING ONE.
-                // updateWaveMotion sets waveAmplitude = 0 on pause, so the wave flattens to a plain 4dp
-                // line and loses the shape cue that helps it read at low contrast. Motion cannot be the
-                // sole means of making a control perceivable (WCAG 1.4.11, which also sets the 3:1 non-text
-                // contrast threshold). Judge any future tint against the PAUSED render.
+                // ⚠️ 2. THERE IS NO MOTION CUE ON THIS CONTROL.
+                // A straight bar reads the same playing or paused, so contrast has to do all the work.
+                // Judge any future tint against full contrast (WCAG 1.4.11, which also sets the 3:1 non-text
+                // contrast threshold), not against animation.
                 //
                 // ⚠️ 3. FOUR SHIPPING PLAYERS BREAK THE COUPLING THE SAME WAY - Spotify, Apple
                 // Music, YouTube Music, Tidal: the background carries the artwork, the progress control is a
@@ -1601,7 +1543,7 @@ class PlayerFragment : Fragment() {
                 // already the experiment for this colour in both themes.
                 //
                 // ⚠️ PARKED, NOT BUILT: an AMBIENT-GLOW alternative - a soft blurred
-                // artwork-tinted shadow BEHIND a neutral wave. It would keep artwork presence on the control
+                // artwork-tinted shadow BEHIND a neutral bar. It would keep artwork presence on the control
                 // without putting colour where contrast has to be. More work than this and unverified; it is
                 // the answer if the tinting is ever missed.
                 //
@@ -1612,7 +1554,9 @@ class PlayerFragment : Fragment() {
                 // ACCENT - it took PlayerColors.background, as the note at trackSubtitle below has
                 // always said. The two comments contradicted each other; this one was wrong.
                 val seekNeutral = ContextCompat.getColor(requireContext(), R.color.amoled_fg)
-                seekWaveBar.setIndicatorColor(seekNeutral)
+                seekBar.trackActiveTintList = ColorStateList.valueOf(seekNeutral)
+                seekBar.trackInactiveTintList =
+                    ColorStateList.valueOf(ColorUtils.setAlphaComponent(seekNeutral, SEEK_RAIL_ALPHA))
                 // The heart is the one control here that shows a persistent CHOICE, so it gets the
                 // accent when checked and stays amoled_fg otherwise (see color/button_player_heart.xml
                 // for why accent's weak-palette fallback is acceptable on a glyph but not on a fill).
@@ -1621,8 +1565,8 @@ class PlayerFragment : Fragment() {
                     intArrayOf(colors.accent, colors.onBackground)
                 )
                 // ⚠⚠ THE PILL IS NEUTRAL, NOT ARTWORK-TINTED, AND BOTH HALVES COME FROM THE SAME
-                // TOKEN AS THE WAVE AND THUMB. It used to take PlayerColors.background with
-                // onBackground text - correct while the wave and thumb were artwork-tinted too, and
+                // TOKEN AS THE BAR AND THUMB. It used to take PlayerColors.background with
+                // onBackground text - correct while the bar and thumb were artwork-tinted too, and
                 // wrong the moment they went neutral, because it left the pill as the ONLY coloured
                 // element in the seek row. It is also the least important thing in that row (a
                 // secondary affordance opening QualitySelectionBottomSheet), so it was pulling the
@@ -1646,19 +1590,10 @@ class PlayerFragment : Fragment() {
                 val pillScrim = ColorUtils.setAlphaComponent(seekNeutral, 0x1F)
                 trackSubtitle.backgroundTintList = ColorStateList.valueOf(pillScrim)
                 trackSubtitle.setTextColor(seekNeutral)
-                // The thumb MUST match the wave: it reads as the LEADING EDGE of the played portion, and
+                // The thumb MUST match the active track: it reads as the LEADING EDGE of the played portion, and
                 // a coloured thumb over a neutral track is not a pattern any shipping player uses.
                 seekBar.thumbTintList = ColorStateList.valueOf(seekNeutral)
                 playingIndicator.setIndicatorColor(colors.accent)
-                // bufferBar.setIndicatorColor is DELIBERATELY ABSENT — do not restore it without also
-                // changing the layout. bufferBar's indicator is transparent in XML because
-                // DeterminateDrawable never assigns startFraction (it stays 0f), so the indicator can only
-                // fill from the left edge and drew a solid accent line under the whole played portion,
-                // visible through the wave. A runtime setIndicatorColor here would override that XML and
-                // paint it straight back. Only the rail is tinted now. See the note on bufferBar in
-                // item_player_controls.xml. PlayerTvFragment carries the same omission for tvBufferBar —
-                // keep the two in step.
-                bufferBar.trackColor = colors.onBackground
                 trackCurrentTime.setTextColor(colors.onBackground)
                 trackTotalTime.setTextColor(colors.onBackground)
                 trackTitle.setTextColor(colors.onBackground)
@@ -1831,6 +1766,9 @@ class PlayerFragment : Fragment() {
         private fun Context.showBackground() = getSettings().showBackground()
         const val DYNAMIC_PLAYER = "dynamic_player"
         const val PLAYER_COLOR = "player_app_color"
+        // Inactive rail alpha for the straight seek bars (phone + TV): the active track is full-opacity
+        // neutral, the rail the same neutral dimmed to 30% — the Spotify-style played/unplayed split.
+        const val SEEK_RAIL_ALPHA = 0x4D
         fun Context.isDynamic(): Boolean =
             getSettings().getBoolean(DYNAMIC_PLAYER, true)
 
