@@ -75,7 +75,7 @@ Two build checks guard the extension boundary, and both run on every shipped bui
 
 ## Contributing
 
-Everyone can contribute. Open an issue to report a bug or suggest an idea, or open a pull request with a change. Use Conventional Commits in pull request titles. Say what changed and how you tested it.
+Everyone can contribute. Open an issue to report a bug or suggest an idea, or open a pull request with a change. Use [Conventional Commits](https://www.conventionalcommits.org/) in pull request titles. Say what changed and how you tested it.
 
 ---
 
