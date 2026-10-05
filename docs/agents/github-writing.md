@@ -98,6 +98,6 @@ Changelog:
 
 ## Workflows
 
-- `release-please.yml`: on push to `main`, opens or updates a release PR. Merging it creates the tag and the GitHub release.
-- `release-apk.yml`: on release published, builds `:app:assembleRelease` and attaches the single `...-release.apk` to the release. Fails when the tag disagrees with `version.txt` or the APK lacks the `-release` marker.
+- `release-please.yml`: on push to `main`, opens or updates a release PR. Merging it creates the tag and the GitHub release, then builds `:app:assembleRelease` and attaches the single `...-release.apk` in the same run. The upload must stay in this run: releases cut with the automatic token start no new runs, so a separate `on: release` workflow never fires. Gated on the merge commit message (`chore(main): release x.y.z`); fails when the tag disagrees with `version.txt` or the APK lacks the `-release` marker.
+- `release-apk.yml`: `workflow_dispatch` only. Manual proof that the release build stays green; uploads the APK as a workflow artifact and never touches a release.
 - `pr-title-check.yml`: on PR open, edit, and sync, fails when the title does not parse as a Conventional Commit.

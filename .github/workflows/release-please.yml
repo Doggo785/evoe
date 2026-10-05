@@ -17,3 +17,92 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      # Everything below runs only when this push merged a release PR, and it
+      # must live in THIS run. Releases created through the automatic token do
+      # not start new workflow runs (loop protection), so a separate
+      # `on: release` workflow never fires — observed 2026-10-04, when v3.2.0
+      # published with zero assets and no run started. The merge commit of a
+      # release PR is always titled `chore(main): release x.y.z` (squash
+      # subject = PR title), so the commit message is the gate. If that format
+      # ever changes, uploads silently stop — keep the two in sync.
+      - name: gate on release merge commit
+        id: gate
+        env:
+          HEAD_COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          if [[ "$HEAD_COMMIT_MSG" == "chore(main): release "* ]]; then
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "created=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.created == 'true'
+        with:
+          # Full history: versionCode comes from `git rev-list --count HEAD`,
+          # a shallow clone would report 1 and break upgrade monotonicity.
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        if: steps.gate.outputs.created == 'true'
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
+        if: steps.gate.outputs.created == 'true'
+
+      # Same note as quality.yml: no android-actions/setup-android (v3 crashes
+      # installing the obsolete 'tools' package). Runners ship an SDK;
+      # sdkmanager is just not on PATH, so use the full path.
+      - name: Android platform 37 + build tools
+        if: steps.gate.outputs.created == 'true'
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null
+          "$SDKMANAGER" "platforms;android-37.0" "build-tools;36.0.0" "build-tools;37.0.0"
+
+      # Same guards as quality.yml's release-size job: verifyExtensionAbi runs
+      # as a finalizer of minify*WithR8 and verifyCleanKotlinOutput is a
+      # dependency of assembleRelease. Signed with the pinned shared debug key
+      # (keystores/debug.keystore), so this APK upgrades any previously
+      # shipped build in place.
+      - name: release apk (R8 + ABI and clean-output guards)
+        if: steps.gate.outputs.created == 'true'
+        run: ./gradlew :app:assembleRelease
+
+      - name: verify apk and upload to the release
+        if: steps.gate.outputs.created == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # ls fails when the glob matches nothing, and pipefail + set -e would
+          # exit the script before the count check below runs. `|| true` keeps
+          # the pipeline alive so the check reports the failure with its own
+          # message instead of ls's raw error.
+          APK_COUNT=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | wc -l || true)
+          if [ "$APK_COUNT" -ne 1 ]; then
+            echo "expected exactly 1 apk in app/build/outputs/apk/release/, found $APK_COUNT"
+            ls -la app/build/outputs/apk/release/
+            exit 1
+          fi
+          APK=$(ls app/build/outputs/apk/release/*.apk)
+          echo "built: $APK"
+          case "$APK" in
+            *-release.apk) ;;
+            *)
+              echo "refusing to upload $APK: the file must carry the -release marker"
+              exit 1
+              ;;
+          esac
+          # The release PR rewrote version.txt before the tag was cut, so the
+          # tag this run published is v + version.txt (include-v-in-tag). If
+          # they disagree, the in-app updater (which compares the tag) would
+          # offer the same update forever — fail loudly instead. `gh release
+          # view` failing also fails the job, which is correct: a release
+          # merge without its release is an anomaly worth stopping for.
+          VERSION=$(cat version.txt)
+          TAG="v$VERSION"
+          gh release view "$TAG" >/dev/null
+          echo "uploading $APK to $TAG"
+          gh release upload "$TAG" "$APK" --clobber
