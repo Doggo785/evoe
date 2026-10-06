@@ -37,10 +37,8 @@ import dev.brahmkshatriya.echo.utils.Serializer.getSerialized
 import dev.brahmkshatriya.echo.utils.Serializer.putSerialized
 import dev.brahmkshatriya.echo.utils.exportExtensionSettings
 import dev.brahmkshatriya.echo.utils.importExtensionSettings
-import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.FilePreference
-import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.exportPreference
+import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.addFilePickerPreferences
 import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.extensionSettingsFileName
-import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.importPreference
 import dev.brahmkshatriya.echo.utils.ui.prefs.LoadingPreference
 import dev.brahmkshatriya.echo.utils.ui.prefs.MaterialListPreference
 import dev.brahmkshatriya.echo.utils.ui.prefs.MaterialMultipleChoicePreference
@@ -192,26 +190,13 @@ class ExtensionInfoFragment : BaseSettingsFragment() {
                 }
                 state.settings.forEach { it.addPreferenceTo(screen) }
 
-                exportPreference(
+                addFilePickerPreferences(
+                    screen,
                     context,
-                    FilePreference(
-                        key = "export",
-                        title = getString(R.string.export_settings),
-                        summary = getString(R.string.export_settings_summary)
-                    ),
                     fileName = { extensionSettingsFileName(extensionType, extensionId) },
-                    launcher = exportLauncher,
-                ).also { screen.addPreference(it) }
-
-                importPreference(
-                    context,
-                    FilePreference(
-                        key = "import",
-                        title = getString(R.string.import_settings),
-                        summary = getString(R.string.import_settings_summary)
-                    ),
-                    launcher = importLauncher,
-                ).also { screen.addPreference(it) }
+                    exportLauncher = exportLauncher,
+                    importLauncher = importLauncher,
+                )
             }
         }
 

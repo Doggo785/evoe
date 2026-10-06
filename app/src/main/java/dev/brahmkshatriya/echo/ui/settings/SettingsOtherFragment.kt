@@ -12,9 +12,7 @@ import dev.brahmkshatriya.echo.ui.extensions.ExtensionsViewModel
 import dev.brahmkshatriya.echo.utils.ContextUtils.SETTINGS_NAME
 import dev.brahmkshatriya.echo.utils.exportSettings
 import dev.brahmkshatriya.echo.utils.importSettings
-import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.FilePreference
-import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.exportPreference
-import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.importPreference
+import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.addFilePickerPreferences
 import dev.brahmkshatriya.echo.utils.ui.prefs.SwitchLongClickPreference
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
@@ -68,26 +66,13 @@ class SettingsOtherFragment : BaseSettingsFragment() {
                 }
             }
 
-            exportPreference(
+            addFilePickerPreferences(
+                screen,
                 context,
-                FilePreference(
-                    key = "export",
-                    title = getString(R.string.export_settings),
-                    summary = getString(R.string.export_settings_summary)
-                ),
                 fileName = { "echo-settings.json" },
-                launcher = exportLauncher,
-            ).also { screen.addPreference(it) }
-
-            importPreference(
-                context,
-                FilePreference(
-                    key = "import",
-                    title = getString(R.string.import_settings),
-                    summary = getString(R.string.import_settings_summary)
-                ),
-                launcher = importLauncher,
-            ).also { screen.addPreference(it) }
+                exportLauncher = exportLauncher,
+                importLauncher = importLauncher,
+            )
         }
     }
 }

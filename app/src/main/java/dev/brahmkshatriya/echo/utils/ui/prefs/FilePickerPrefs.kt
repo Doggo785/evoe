@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import androidx.activity.result.ActivityResultLauncher
 import androidx.fragment.app.Fragment
+import androidx.preference.PreferenceGroup
 import dev.brahmkshatriya.echo.R
 import dev.brahmkshatriya.echo.ui.common.SnackBarHandler.Companion.createSnack
 import dev.brahmkshatriya.echo.utils.ui.UiUtils.hasCreateDocument
@@ -33,25 +34,53 @@ object FilePickerPrefs {
         config: FilePreference,
         fileName: () -> String,
         launcher: ActivityResultLauncher<String>,
-    ): TransitionPreference {
-        return TransitionPreference(context).apply {
-            key = config.key
-            title = config.title
-            summary = config.summary
-            layoutResource = R.layout.preference
-            isIconSpaceReserved = false
-            isVisible = context.hasCreateDocument()
-            setOnPreferenceClickListener {
-                launchSpeaking(launcher, fileName())
-                true
-            }
+    ): TransitionPreference =
+        buildFilePreference(context, config, context.hasCreateDocument()) {
+            launchSpeaking(launcher, fileName())
         }
-    }
 
     fun Fragment.importPreference(
         context: Context,
         config: FilePreference,
         launcher: ActivityResultLauncher<Array<String>>,
+    ): TransitionPreference =
+        buildFilePreference(context, config, context.hasOpenDocument()) {
+            launchSpeaking(launcher, arrayOf("application/json"))
+        }
+
+    fun Fragment.addFilePickerPreferences(
+        screen: PreferenceGroup,
+        context: Context,
+        fileName: () -> String,
+        exportLauncher: ActivityResultLauncher<String>,
+        importLauncher: ActivityResultLauncher<Array<String>>,
+    ) {
+        exportPreference(
+            context,
+            FilePreference(
+                key = "export",
+                title = getString(R.string.export_settings),
+                summary = getString(R.string.export_settings_summary)
+            ),
+            fileName = fileName,
+            launcher = exportLauncher,
+        ).also { screen.addPreference(it) }
+        importPreference(
+            context,
+            FilePreference(
+                key = "import",
+                title = getString(R.string.import_settings),
+                summary = getString(R.string.import_settings_summary)
+            ),
+            launcher = importLauncher,
+        ).also { screen.addPreference(it) }
+    }
+
+    private fun buildFilePreference(
+        context: Context,
+        config: FilePreference,
+        visible: Boolean,
+        onTap: () -> Unit,
     ): TransitionPreference {
         return TransitionPreference(context).apply {
             key = config.key
@@ -59,9 +88,9 @@ object FilePickerPrefs {
             summary = config.summary
             layoutResource = R.layout.preference
             isIconSpaceReserved = false
-            isVisible = context.hasOpenDocument()
+            isVisible = visible
             setOnPreferenceClickListener {
-                launchSpeaking(launcher, arrayOf("application/json"))
+                onTap()
                 true
             }
         }
