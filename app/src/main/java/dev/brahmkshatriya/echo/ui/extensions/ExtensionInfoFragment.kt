@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
@@ -36,10 +37,8 @@ import dev.brahmkshatriya.echo.utils.Serializer.getSerialized
 import dev.brahmkshatriya.echo.utils.Serializer.putSerialized
 import dev.brahmkshatriya.echo.utils.exportExtensionSettings
 import dev.brahmkshatriya.echo.utils.importExtensionSettings
-import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.FilePreference
-import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.exportPreference
+import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.addFilePickerPreferences
 import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.extensionSettingsFileName
-import dev.brahmkshatriya.echo.utils.ui.prefs.FilePickerPrefs.importPreference
 import dev.brahmkshatriya.echo.utils.ui.prefs.LoadingPreference
 import dev.brahmkshatriya.echo.utils.ui.prefs.MaterialListPreference
 import dev.brahmkshatriya.echo.utils.ui.prefs.MaterialMultipleChoicePreference
@@ -122,6 +121,25 @@ class ExtensionInfoFragment : BaseSettingsFragment() {
     class ExtensionPreference : PreferenceFragmentCompat() {
         private val extensionId by lazy { arguments?.getString("id")!! }
         private val extensionType by lazy { arguments?.getString("type")!! }
+        // Registered at init: registering from the state collector below throws
+        // IllegalStateException (the fragment is already created when it emits).
+        // The callbacks read the args at result time, when they are set.
+        private val exportLauncher = registerForActivityResult(
+            ActivityResultContracts.CreateDocument("application/json")
+        ) { uri ->
+            val ctx = context ?: return@registerForActivityResult
+            uri?.let { ctx.exportExtensionSettings(extensionType, extensionId, it) }
+        }
+        private val importLauncher = registerForActivityResult(
+            ActivityResultContracts.OpenDocument()
+        ) { uri ->
+            val ctx = context ?: return@registerForActivityResult
+            uri?.let {
+                if (ctx.importExtensionSettings(extensionType, extensionId, it))
+                    requireActivity().recreate()
+                else createSnack(R.string.invalid_settings_file)
+            }
+        }
         private val viewModel by lazy {
             requireParentFragment().viewModel<ExtensionInfoViewModel> {
                 parametersOf(ExtensionType.valueOf(extensionType), extensionId)
@@ -172,34 +190,13 @@ class ExtensionInfoFragment : BaseSettingsFragment() {
                 }
                 state.settings.forEach { it.addPreferenceTo(screen) }
 
-                exportPreference(
+                addFilePickerPreferences(
+                    screen,
                     context,
-                    FilePreference(
-                        key = "export",
-                        title = getString(R.string.export_settings),
-                        summary = getString(R.string.export_settings_summary)
-                    ),
-                    fileName = { extensionSettingsFileName(extensionType, extensionId) }
-                ) { uri ->
-                    uri?.let {
-                        context.exportExtensionSettings(extensionType, extensionId, it)
-                    }
-                }.also { screen.addPreference(it) }
-
-                importPreference(
-                    context,
-                    FilePreference(
-                        key = "import",
-                        title = getString(R.string.import_settings),
-                        summary = getString(R.string.import_settings_summary)
-                    )
-                ) {
-                    it?.let {
-                        if (context.importExtensionSettings(extensionType, extensionId, it))
-                            requireActivity().recreate()
-                        else createSnack(R.string.invalid_settings_file)
-                    }
-                }.also { screen.addPreference(it) }
+                    fileName = { extensionSettingsFileName(extensionType, extensionId) },
+                    exportLauncher = exportLauncher,
+                    importLauncher = importLauncher,
+                )
             }
         }
 
