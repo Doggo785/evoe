@@ -72,12 +72,14 @@ import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.Streamable
 import dev.brahmkshatriya.echo.databinding.FragmentPlayerBinding
+import dev.brahmkshatriya.echo.extensions.MediaState
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.background
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.context
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.extensionId
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.isLiked
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.isLoaded
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.showBackground
+import dev.brahmkshatriya.echo.playback.MediaItemUtils.state
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.track
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.unloadedCover
 import dev.brahmkshatriya.echo.ui.common.FragmentUtils.openFragment
@@ -1668,6 +1670,10 @@ class PlayerFragment : Fragment() {
             // Plain sync, no guard needed: writes fire on click only (see setup above),
             // so programmatic sets can never trigger a like.
             trackHeart.isChecked = item.isLiked
+            // Unknown like state (playback resolved without waiting for the likes
+            // network call): show unchecked but disabled, so a tap on a false state
+            // can never unlike a liked track before verification converges.
+            trackHeart.isEnabled = (item.state as? MediaState.Loaded<*>)?.isLiked != null
             lifecycleScope.launch {
                 val isTrackClient = viewModel.isLikeClient(item.extensionId)
                 trackHeart.isVisible = isTrackClient
