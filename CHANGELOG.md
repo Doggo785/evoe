@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.3.0](https://github.com/Doggo785/evoe/compare/v3.2.0...v3.3.0) (2026-10-07)
+
+
+### Features
+
+* **player:** start playback without waiting for likes ([658fc80](https://github.com/Doggo785/evoe/commit/658fc80db590c4417107bdf2c11d416c1b50a547))
+
+
+### Bug Fixes
+
+* **extensions:** register file pickers before fragment creation ([b10b326](https://github.com/Doggo785/evoe/commit/b10b326c909aafad42db29a27f379b035bde92fa))
+
 ## [3.2.0](https://github.com/Doggo785/evoe/compare/v3.1.0...v3.2.0) (2026-10-04)
 
 
