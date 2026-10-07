@@ -332,7 +332,7 @@ class PlayerService : MediaLibraryService() {
                 // (Main; Player.Listener fires on the app looper).
                 isRestoreSeekArmed = { state.pendingRestoreSeek != null },
                 healthMonitor = healthMonitor,
-            )
+            ).also { it.app = app }
         )
         player.addListener(
             PlayerRadio(

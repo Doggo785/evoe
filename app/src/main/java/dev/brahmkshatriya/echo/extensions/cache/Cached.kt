@@ -256,6 +256,51 @@ object Cached {
     internal fun idForMessage(id: String) =
         if (id.length <= 96) id else id.take(47) + "…" + id.takeLast(47)
 
+    // Display-only probes (like/save/follow) kept out of the playback path: resolving audio
+    // must not wait for them. Called only when preferCache is false (media pages).
+    @PublishedApi
+    internal suspend fun <T : EchoMediaItem> loadProbedState(
+        extension: Extension<*>,
+        new: T,
+    ): MediaState.Loaded<T> = coroutineScope {
+        val isSaved = async {
+            if (new.isSaveable) extension.getIf<SaveClient, Boolean> {
+                isItemSaved(new)
+            } else null
+        }
+        val isFollowed = async {
+            if (new.isFollowable) extension.getIf<FollowClient, Boolean> {
+                isFollowing(new)
+            } else null
+        }
+        val followers = async {
+            if (new.isFollowable) extension.getIf<FollowClient, Long?> {
+                getFollowersCount(new)
+            } else null
+        }
+        val isLiked = async {
+            if (new.isLikeable) extension.getIf<LikeClient, Boolean> {
+                isItemLiked(new)
+            } else null
+        }
+        val isHidden = async {
+            if (new.isHideable) extension.getIf<HideClient, Boolean> {
+                isItemHidden(new)
+            } else null
+        }
+        MediaState.Loaded(
+            item = new,
+            extensionId = extension.id,
+            isSaved = isSaved.await()?.getOrThrow(),
+            isFollowed = isFollowed.await()?.getOrThrow(),
+            followers = followers.await()?.getOrThrow(),
+            isLiked = isLiked.await()?.getOrThrow(),
+            isHidden = isHidden.await()?.getOrThrow(),
+            showRadio = new.isRadioSupported && extension.isClient<RadioClient>(),
+            showShare = new.isShareable && extension.isClient<ShareClient>(),
+        )
+    }
+
     // ⚠️ PUBLIC INLINE: this body is COPIED into every caller's class file, not called. Changing anything
     // it touches - a member's visibility, its signature, its very existence - silently orphans every
     // caller that is not recompiled in the same run, and neither the compiler nor R8 will say a word. The
@@ -329,42 +374,24 @@ object Cached {
                     "loadItem returned wrong item: expected ${idForMessage(state.item.id)}, " +
                         "got ${idForMessage(new.id)}"
                 )
-                val isSaved = async {
-                    if (new.isSaveable) extension.getIf<SaveClient, Boolean> {
-                        isItemSaved(new)
-                    } else null
+                // Playback path (preferCache) never awaits display-only probes: the queue item
+                // being resolved for audio must not wait for like/save/follow network calls.
+                // Media pages pass preferCache=false and keep fresh values.
+                val newState = if (preferCache) {
+                    MediaState.Loaded(
+                        item = new,
+                        extensionId = extension.id,
+                        isSaved = null,
+                        isFollowed = null,
+                        followers = null,
+                        isLiked = null,
+                        isHidden = null,
+                        showRadio = new.isRadioSupported && extension.isClient<RadioClient>(),
+                        showShare = new.isShareable && extension.isClient<ShareClient>(),
+                    )
+                } else {
+                    loadProbedState(extension, new)
                 }
-                val isFollowed = async {
-                    if (new.isFollowable) extension.getIf<FollowClient, Boolean> {
-                        isFollowing(new)
-                    } else null
-                }
-                val followers = async {
-                    if (new.isFollowable) extension.getIf<FollowClient, Long?> {
-                        getFollowersCount(new)
-                    } else null
-                }
-                val isLiked = async {
-                    if (new.isLikeable) extension.getIf<LikeClient, Boolean> {
-                        isItemLiked(new)
-                    } else null
-                }
-                val isHidden = async {
-                    if (new.isHideable) extension.getIf<HideClient, Boolean> {
-                        isItemHidden(new)
-                    } else null
-                }
-                val newState = MediaState.Loaded(
-                    item = new,
-                    extensionId = extension.id,
-                    isSaved = isSaved.await()?.getOrThrow(),
-                    isFollowed = isFollowed.await()?.getOrThrow(),
-                    followers = followers.await()?.getOrThrow(),
-                    isLiked = isLiked.await()?.getOrThrow(),
-                    isHidden = isHidden.await()?.getOrThrow(),
-                    showRadio = new.isRadioSupported && extension.isClient<RadioClient>(),
-                    showShare = new.isShareable && extension.isClient<ShareClient>(),
-                )
                 val fileCache = app.awaitFileCache()
                 val id = "media-${extension.id}-${newState.item.id}-state"
                 fileCache.putData(id, newState)

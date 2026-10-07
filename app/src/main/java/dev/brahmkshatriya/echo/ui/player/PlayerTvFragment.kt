@@ -30,10 +30,12 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import dev.brahmkshatriya.echo.R
 import dev.brahmkshatriya.echo.databinding.FragmentPlayerTvBinding
+import dev.brahmkshatriya.echo.extensions.MediaState
 import dev.brahmkshatriya.echo.ui.media.more.MediaMoreBottomSheet
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.context
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.extensionId
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.isLiked
+import dev.brahmkshatriya.echo.playback.MediaItemUtils.state
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.track
 import dev.brahmkshatriya.echo.ui.common.UiViewModel
 import dev.brahmkshatriya.echo.ui.player.PlayerColors.Companion.defaultPlayerColors
@@ -136,6 +138,8 @@ class PlayerTvFragment : Fragment() {
 
             // Plain sync, no guard needed: writes fire on click only (see setup above).
             binding.tvTrackHeart.isChecked = item.isLiked
+            // Same unknown-state rule as the phone player: disabled until verified.
+            binding.tvTrackHeart.isEnabled = (item.state as? MediaState.Loaded<*>)?.isLiked != null
             lifecycleScope.launch {
                 binding.tvTrackHeart.isVisible = viewModel.isLikeClient(item.extensionId)
             }

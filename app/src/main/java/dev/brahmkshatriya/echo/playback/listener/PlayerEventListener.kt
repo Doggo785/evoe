@@ -10,6 +10,7 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.ParserException
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.ThumbRating
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.StuckPlayerException
 import androidx.media3.common.util.UnstableApi
@@ -26,18 +27,24 @@ import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import dev.brahmkshatriya.echo.R
 import dev.brahmkshatriya.echo.common.clients.LikeClient
 import dev.brahmkshatriya.echo.common.models.Message
+import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.di.App
 import dev.brahmkshatriya.echo.extensions.ExtensionLoader
+import dev.brahmkshatriya.echo.extensions.MediaState
+import dev.brahmkshatriya.echo.extensions.cache.Cached
 import dev.brahmkshatriya.echo.extensions.exceptions.AppException
 import dev.brahmkshatriya.echo.extensions.exceptions.ExtensionNotFoundException
 import dev.brahmkshatriya.echo.extensions.exceptions.MediaUnavailableException
 import dev.brahmkshatriya.echo.extensions.exceptions.WrongItemException
 import dev.brahmkshatriya.echo.extensions.ExtensionUtils.getExtension
+import dev.brahmkshatriya.echo.extensions.ExtensionUtils.getIf
 import dev.brahmkshatriya.echo.extensions.ExtensionUtils.isClient
 import dev.brahmkshatriya.echo.playback.MediaItemUtils
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.extensionId
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.isLoaded
 import dev.brahmkshatriya.echo.playback.MediaItemUtils.retries
+import dev.brahmkshatriya.echo.playback.MediaItemUtils.state
+import dev.brahmkshatriya.echo.playback.MediaItemUtils.track
 import dev.brahmkshatriya.echo.playback.PlayerCommands.getLikeButton
 import dev.brahmkshatriya.echo.playback.PlayerCommands.getRepeatButton
 import dev.brahmkshatriya.echo.playback.PlayerCommands.getShuffleButton
@@ -120,6 +127,60 @@ class PlayerEventListener(
     // SAFE because MediaSession.setPlayer() is never called anywhere in the app (verified by grep) —
     // the reference cannot go stale. If that ever changes, this must become a withContext(Main) read.
     private val player = session.player
+    // Wired from PlayerService after construction (a 16th constructor param trips
+    // LongParameterList): enables the post-start like verification to persist the
+    // converged state. Null-safe by design — without it verification still updates
+    // the timeline, only the durable write is skipped.
+    var app: App? = null
+
+    // Post-start like verification: the playback path resolves MediaState with isLiked
+    // null (unknown) instead of waiting out the likes network call, so the sound starts
+    // first and the heart converges here. Runs only for unknown states; anything already
+    // definitive (cache hit, user tap) is left alone. Stale-guard: the timeline item is
+    // re-read on Main before applying, so a user tap (or another update) that landed
+    // meanwhile wins and the late answer is dropped. Failures fall back to the inline
+    // flag, then to unchecked — the heart re-enables either way and re-verifies on the
+    // next track, never staying dead. Deliberately silent on failure (offline is normal).
+    private var likeVerifyJob: Job? = null
+
+    private fun verifyCurrentLikeState() {
+        val item = player.currentMediaItem ?: return
+        if ((item.state as? MediaState.Loaded<Track>)?.isLiked != null) return
+        likeVerifyJob?.cancel()
+        likeVerifyJob = scope.launch(Dispatchers.IO) {
+            val liked = resolveVerifiedLike(item)
+            if (liked != null) withContext(Dispatchers.Main) { applyVerifiedLike(item.mediaId, liked) }
+        }
+    }
+
+    private suspend fun resolveVerifiedLike(item: MediaItem): Boolean? {
+        val ext = extensions.music.getExtension(item.extensionId) ?: return null
+        val track = item.track
+        var liked: Boolean? = null
+        var attempt = 0
+        while (liked == null && attempt < LIKE_VERIFY_ATTEMPTS) {
+            if (attempt > 0) delay(LIKE_VERIFY_RETRY_MS)
+            attempt++
+            liked = ext.getIf<LikeClient, Boolean> { isItemLiked(track) }.getOrNull()
+        }
+        // Fallback order: inline flag the track already carries, then unchecked.
+        // The FileKache rung needs no code: a usable cached entry is served before
+        // this ever runs (preferCache hit), so reaching here means there is none.
+        return liked ?: (track.extras["loved"] == "1")
+    }
+
+    private fun applyVerifiedLike(mediaId: String, liked: Boolean) {
+        val current = player.currentMediaItem?.takeIf { it.mediaId == mediaId } ?: return
+        if ((current.state as? MediaState.Loaded<Track>)?.isLiked != null) return
+        val rated = current.buildUpon().setMediaMetadata(
+            current.mediaMetadata.buildUpon().setUserRating(ThumbRating(liked)).build()
+        ).build()
+        player.replaceMediaItem(player.currentMediaItemIndex, rated)
+        scope.launch(Dispatchers.IO) {
+            val host = app ?: return@launch
+            runCatching { Cached.updateLikeState(host.awaitFileCache(), current.extensionId, current.track.id, liked) }
+        }
+    }
 
     // True only while an INTERNAL seek is in flight — a buffering-watchdog re-prepare OR an onPlayerError
     // retry (both stop→seek→prepare the current track). onPositionDiscontinuity's
@@ -370,6 +431,7 @@ class PlayerEventListener(
             bufferingWatchdog?.cancel()
             bufferingWatchdog = null
         }
+        if (playbackState == Player.STATE_READY) verifyCurrentLikeState()
         // ⚠⚠ SETTLE playWhenReady AT THE END OF THE QUEUE. ExoPlayer does NOT clear it on STATE_ENDED,
         // and nothing else here did either, so a queue that simply ran out sat at ENDED with the player
         // still declaring INTENT TO PLAY — indefinitely. ONE FLAG, FOUR CONSUMERS, all wrong at once:
@@ -798,6 +860,9 @@ class PlayerEventListener(
         )
 
         private const val BUFFERING_WATCHDOG_MS = 5_000L
+        // Post-start like verification: bounded retries, then the inline-flag fallback.
+        private const val LIKE_VERIFY_ATTEMPTS = 2
+        private const val LIKE_VERIFY_RETRY_MS = 1_500L
         // Cold-start re-seek belt: only re-apply the saved position if the current position is still at the
         // start. A user seek before the first STATE_READY moves it past this, and we leave their choice.
         private const val RESTORE_SEEK_BELT_MS = 1_000L
