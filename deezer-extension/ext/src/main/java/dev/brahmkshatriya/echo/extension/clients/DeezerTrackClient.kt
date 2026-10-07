@@ -142,7 +142,7 @@ class DeezerTrackClient(private val deezerExtension: DeezerExtension, private va
                 lastError = e
             }
         }
-        return resolved ?: throw Exception("Track not available after retries: $trackId", lastError)
+        return resolved ?: throw IllegalStateException("Track not available after retries: $trackId", lastError)
     }
 
     suspend fun loadStreamableMedia(streamable: Streamable): Streamable.Media {
