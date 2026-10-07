@@ -76,7 +76,7 @@ class DeezerTrack(private val deezerApi: DeezerApi) {
             paramsBuilder = {
                 put("user_id", userId)
                 put("tab", "loved")
-                put("nb", 10000)
+                put("nb", LIKES_FETCH_LIMIT)
                 put("start", 0)
             },
             np = true
@@ -104,5 +104,10 @@ class DeezerTrack(private val deezerApi: DeezerApi) {
     companion object {
         // See getListData's note: self-imposed, not a discovered limit.
         private const val GET_LIST_DATA_CHUNK = 100
+
+        // Single-shot ceiling of favorite_song.getList (see getTracks): a response
+        // carrying this many ids is probably truncated, so LikeState must not treat
+        // absence as "not liked" for it. Shared with the truncation guard.
+        const val LIKES_FETCH_LIMIT = 10000
     }
 }

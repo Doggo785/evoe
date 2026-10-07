@@ -43,6 +43,7 @@ import dev.brahmkshatriya.echo.common.settings.SettingSwitch
 import dev.brahmkshatriya.echo.common.settings.Settings
 import dev.brahmkshatriya.echo.extension.DeezerCountries.getDefaultCountryIndex
 import dev.brahmkshatriya.echo.extension.DeezerCountries.getDefaultLanguageIndex
+import dev.brahmkshatriya.echo.extension.api.DeezerTrack
 import dev.brahmkshatriya.echo.extension.clients.DeezerAlbumClient
 import dev.brahmkshatriya.echo.extension.clients.DeezerArtistClient
 import dev.brahmkshatriya.echo.extension.clients.DeezerHomeFeedClient
@@ -57,9 +58,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.JsonArray
@@ -75,7 +78,7 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
     private val session by lazy { DeezerSession.getInstance() }
     private val api by lazy { DeezerApi(session) }
     private val parser by lazy { DeezerParser(session) }
-    private var likedTrackIds: HashSet<String>? = null
+    private val likeState = LikeState()
 
     override suspend fun getSettingItems(): List<Setting> {
         return listOf(
@@ -254,6 +257,20 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
             // both the login screen and onLogin. The sign-in prompt still surfaces from the
             // data-path handleArlExpiration call sites via ExceptionUtils.
         }
+        // Prefetch the likes list in the background (never blocking selection): after the
+        // first sync, isItemLiked answers from memory and the playback path never pays
+        // the 5.8s getList. Best-effort by design - a failure just leaves the lazy
+        // fetch-on-first-verify behavior in place. Fire-and-forget on purpose: selection
+        // must return even if Deezer is slow; the merge is generation-guarded, so a tap
+        // made before the sync lands survives it via the pending sets.
+        if (!likeState.fullyLoaded) {
+            extensionScope.launch {
+                runCatching {
+                    val (ids, complete) = fetchLikedTracks()
+                    likeState.merge(ids, complete)
+                }
+            }
+        }
     }
 
     //<============= HomeTab =============>
@@ -316,17 +333,22 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
 
     override suspend fun likeItem(item: EchoMediaItem, shouldLike: Boolean) {
         handleArlExpiration()
-        when (item) {
-            is Track -> {
-                if (shouldLike) {
-                    likedTrackIds?.add(item.id)
-                    api.addFavoriteTrack(item.id)
-                } else {
-                    likedTrackIds?.remove(item.id)
-                    api.removeFavoriteTrack(item.id)
-                }
-            }
-            else -> {}
+        if (item !is Track) return
+        // Optimistic memory first: concurrent readers (verification racing a tap)
+        // see the user intent immediately. The network confirms below; on refusal
+        // the generation-guarded rollback restores memory, so a late failure can
+        // never overwrite a newer tap. Cancellation leaves the intent pending on
+        // purpose: the write may still have landed, and the next sync merge
+        // re-applies it rather than silently dropping it.
+        val gen = if (shouldLike) likeState.userLike(item.id) else likeState.userUnlike(item.id)
+        runCatching {
+            if (shouldLike) api.addFavoriteTrack(item.id) else api.removeFavoriteTrack(item.id)
+        }.onSuccess {
+            likeState.confirm(item.id, shouldLike, gen)
+        }.getOrElse {
+            if (it is CancellationException) throw it
+            likeState.rollback(item.id, shouldLike, gen)
+            throw it
         }
         // The likes content changed: the per-artist menu must rebuild from fresh data,
         // not from the session cache below.
@@ -335,17 +357,47 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
 
     override suspend fun isItemLiked(item: EchoMediaItem): Boolean {
         if (item !is Track) return false
-        val ids = likedTrackIds ?: fetchLikedTrackIds().also { likedTrackIds = it }
-        return item.id in ids
+        // Fast path, no network: pending action, then memory, then the inline flag
+        // the track already carries (LOVE_STATUS parsed into extras).
+        return likeState.resolve(item.id, item.lovedFlag) ?: fetchVerified(item)
     }
 
-    private suspend fun fetchLikedTrackIds(): HashSet<String> {
-        val dataArray = runCatching {
-            api.getTracks()["results"]?.jsonObject?.get("data")?.jsonArray
-        }.getOrNull() ?: return hashSetOf()
-        return dataArray.mapNotNull {
-            runCatching { it.jsonObject["SNG_ID"]?.jsonPrimitive?.content }.getOrNull()
-        }.toHashSet()
+    // Truly unknown (media pages, first verification): one network fetch, then the
+    // answer is definitive only if the list was not truncated.
+    private suspend fun fetchVerified(item: Track): Boolean {
+        val (ids, complete) = fetchLikedTracks()
+        likeState.merge(ids, complete)
+        return likeState.resolve(item.id, item.lovedFlag) ?: false
+    }
+
+    private val Track.lovedFlag: Boolean?
+        get() = when (extras["loved"]) {
+            "1" -> true
+            "0" -> false
+            else -> null
+        }
+
+    private suspend fun fetchLikedTracks(): Pair<Set<String>, Boolean> {
+        val results = runCatching {
+            api.getTracks()["results"]?.jsonObject
+        }.getOrNull()
+        val data = results?.get("data")?.jsonArray
+        val pair = if (results == null || data == null) {
+            emptySet<String>() to false
+        } else {
+            val ids = data.mapNotNull {
+                runCatching { it.jsonObject["SNG_ID"]?.jsonPrimitive?.content }.getOrNull()
+            }.toSet()
+            // Truncation guard: nb=LIKES_FETCH_LIMIT in a single shot. A full page is
+            // probably cut, so absence must stay "unknown", not "not liked". Prefer the
+            // server total when present; otherwise the page size decides.
+            val total = listOf("total", "TOTAL", "count", "nb").firstNotNullOfOrNull { key ->
+                (results[key] as? JsonPrimitive)?.content?.toIntOrNull()
+            }
+            val complete = total?.let { ids.size >= it } ?: (ids.size < DeezerTrack.LIKES_FETCH_LIMIT)
+            ids to complete
+        }
+        return pair
     }
 
     /**
@@ -795,7 +847,7 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
     }
 
     override fun setLoginUser(user: User?) {
-        likedTrackIds = null
+        likeState.reset()
         likedEntriesCache = null
         // THE ONLY PLACE THE REFUSAL LATCH IS CLEARED, and it covers both directions: a successful
         // login (new credentials, so the old refusal is stale) and a logout (nothing left to refuse).

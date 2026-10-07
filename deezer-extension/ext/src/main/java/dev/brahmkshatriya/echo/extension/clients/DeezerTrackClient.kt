@@ -37,10 +37,12 @@ class DeezerTrackClient(private val deezerExtension: DeezerExtension, private va
                 if (quality != "128" && quality != "mp3") api.getMediaUrl(track, quality)
                 else api.getMP3MediaUrl(track, quality == "128")
             val mjString = mediaJson.toString()
-            if (mjString.contains("License token has no sufficient rights on requested media")) return when (quality) {
-                "flac" -> createStreamableForQuality(track, "320", retry)
-                "320" -> createStreamableForQuality(track, "128", retry)
-                else -> throw Exception("Track not available on server")
+            if (mjString.contains("License token has no sufficient rights on requested media")) {
+                return when (quality) {
+                    "flac" -> createStreamableForQuality(track, "320", retry)
+                    "320" -> createStreamableForQuality(track, "128", retry)
+                    else -> throw Exception("Track not available on server")
+                }
             }
             val trackJsonData = mediaJson["data"]?.jsonArray?.firstOrNull()?.jsonObject
             val mediaIsEmpty = trackJsonData?.get("media")?.jsonArray?.isEmpty() == true
@@ -123,6 +125,26 @@ class DeezerTrackClient(private val deezerExtension: DeezerExtension, private va
         }
     }
 
+    private suspend fun resolveWithRetry(newTrack: Track, quality: String, trackId: String): Streamable {
+        // lastError is chained into the throw so failure modes stay distinguishable
+        // instead of collapsing to one string.
+        var lastError: Throwable? = null
+        var resolved: Streamable? = null
+        for (attempt in 0..1) {
+            if (attempt > 0) delay(2000L)
+            @Suppress("SwallowedException")
+            try {
+                resolved = createStreamableForQuality(newTrack, quality)
+                break
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                lastError = e
+            }
+        }
+        return resolved ?: throw Exception("Track not available after retries: $trackId", lastError)
+    }
+
     suspend fun loadStreamableMedia(streamable: Streamable): Streamable.Media {
         deezerExtension.handleArlExpiration()
         val resolvedStreamable = if (streamable.id.startsWith(placeholderPrefix)) {
@@ -137,32 +159,7 @@ class DeezerTrackClient(private val deezerExtension: DeezerExtension, private va
                     "FALLBACK_ID" to streamable.extras["FALLBACK_ID"].orEmpty()
                 )
             )
-            var resolved: Streamable? = null
-            // Last attempt's cause, CHAINED into the throw below. Control flow is unchanged — the loop still
-            // swallows per-attempt failures and still retries — this only stops the reason being discarded.
-            // Without it every failure mode collapses to one string: the 2026-08-19 breaker trip showed three
-            // distinct track ids all reporting "Track not available after retries" with no transport error,
-            // and token/session staleness, an account-level limit and a server outage were indistinguishable.
-            var lastError: Throwable? = null
-            for (attempt in 0..1) {
-                if (attempt > 0) delay(2000L)
-                // Best-effort retry: the loop continues past a failed attempt and ends in the throw below.
-                // The caught exception IS used now (captured as lastError and chained), but the annotation
-                // stays because the catch still does not rethrow on the non-final attempt.
-                @Suppress("SwallowedException")
-                try {
-                    resolved = createStreamableForQuality(newTrack, quality)
-                    break
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    lastError = e
-                    // Kept alongside the chaining, not made redundant by it: only the LAST attempt's cause is
-                    // chained, so attempt 0's reason exists nowhere else. The two are complementary.
-                    println("GladixDeezer loadStreamableMedia attempt $attempt failed id=$trackId q=$quality: ${e.message}")
-                }
-            }
-            resolved ?: throw Exception("Track not available after retries: $trackId", lastError)
+            resolveWithRetry(newTrack, quality, trackId)
         } else {
             streamable
         }
