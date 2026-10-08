@@ -204,6 +204,11 @@
     <string name="checking_for_updates">Checking for updates</string>
     <string name="checking_for_extension_updates">Checking for third-party extension updates</string>
     <string name="all_extensions_up_to_date">All third-party extensions are up to date</string>
+    <string name="app_update_available">Update available</string>
+    <string name="app_update_to_x">%1$s → %2$s</string>
+    <string name="whats_new">What\'s new</string>
+    <string name="later">Later</string>
+    <string name="app_update_no_notes">No details for this update.</string>
 
     <string name="look_and_feel">Look and Feel</string>
 
