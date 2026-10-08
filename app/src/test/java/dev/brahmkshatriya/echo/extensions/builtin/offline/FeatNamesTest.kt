@@ -2,60 +2,15 @@ package dev.brahmkshatriya.echo.extensions.builtin.offline
 
 import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.Track
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Pure feat. parsing shared by the offline artist split and the per-artist
- * liked filter. No Android here so it runs as a plain JVM test.
+ * Per-artist liked predicate. No Android here so it runs as a plain JVM test.
+ * The feat parsing it builds on is covered in :common (FeatNamesTest).
  */
 class FeatNamesTest {
-
-    @Test
-    fun `feat names from parenthesized marker`() {
-        assertEquals(listOf("B"), featNamesFromTitle("Song (feat. B)"))
-    }
-
-    @Test
-    fun `feat names without parens`() {
-        assertEquals(listOf("B"), featNamesFromTitle("Song feat. B"))
-    }
-
-    @Test
-    fun `feat names support ft and featuring spellings`() {
-        assertEquals(listOf("B"), featNamesFromTitle("Song (ft. B)"))
-        assertEquals(listOf("B"), featNamesFromTitle("Song featuring B"))
-    }
-
-    @Test
-    fun `feat names support several guests`() {
-        assertEquals(listOf("B", "C", "D"), featNamesFromTitle("Song (feat. B, C & D)"))
-    }
-
-    @Test
-    fun `feat matching is case-insensitive at the call sites`() {
-        assertEquals(listOf("b"), featNamesFromTitle("Song (FEAT. b)"))
-    }
-
-    @Test
-    fun `plain titles have no feat names`() {
-        assertEquals(emptyList<String>(), featNamesFromTitle("Plain Song"))
-        assertEquals(emptyList<String>(), featNamesFromTitle("A Feature Film Soundtrack"))
-    }
-
-    @Test
-    fun `split artist field on feat marker`() {
-        assertEquals(listOf("A", "B"), splitArtistField("A feat. B"))
-        assertEquals(listOf("A", "B"), splitArtistField("A (feat. B)"))
-        assertEquals(listOf("A", "B", "C"), splitArtistField("A & B feat. C"))
-    }
-
-    @Test
-    fun `split artist field keeps comma and ampersand behavior`() {
-        assertEquals(listOf("A", "B", "C"), splitArtistField("A, B & C"))
-    }
 
     private fun likedTrack(title: String, vararg artistIds: String) = Track(
         id = title,

@@ -334,6 +334,11 @@ public final class dev/brahmkshatriya/echo/common/helpers/ContinuationCallback$C
 	public final fun await (Lokhttp3/Call;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class dev/brahmkshatriya/echo/common/helpers/FeatNamesKt {
+	public static final fun featNamesFromTitle (Ljava/lang/String;)Ljava/util/List;
+	public static final fun splitArtistField (Ljava/lang/String;)Ljava/util/List;
+}
+
 public final class dev/brahmkshatriya/echo/common/helpers/Injectable {
 	public fun <init> (Lkotlin/jvm/functions/Function0;Ljava/util/List;)V
 	public final fun casted ()Ldev/brahmkshatriya/echo/common/helpers/Injectable;

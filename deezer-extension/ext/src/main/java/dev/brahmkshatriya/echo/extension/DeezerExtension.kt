@@ -471,7 +471,13 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
                     }.awaitAll()
                 }.flatten()
         }
-        val fresh = pages.flatMap { page ->
+        return mergeFullCache(cached, snapshot.ids, parseResolvedPages(pages), snapshot.complete).also {
+            likedFullCache = System.currentTimeMillis() to it
+        }
+    }
+
+    private fun parseResolvedPages(pages: List<JsonObject>): Map<String, Track> =
+        pages.flatMap { page ->
             page["results"]?.jsonObject?.get("data")?.jsonArray.orEmpty()
         }.mapNotNull { element ->
             runCatching {
@@ -482,10 +488,6 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
                 }
             }.getOrNull()
         }.associateBy { it.id }
-        return mergeFullCache(cached, snapshot.ids, fresh, snapshot.complete).also {
-            likedFullCache = System.currentTimeMillis() to it
-        }
-    }
 
     override suspend fun bustLikedCache() {
         // Snapshot only: the full cache reconciles itself on the next resolve (newcomers

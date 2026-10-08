@@ -2,6 +2,7 @@ package dev.brahmkshatriya.echo.extension.clients
 
 import dev.brahmkshatriya.echo.common.helpers.Page
 import dev.brahmkshatriya.echo.common.helpers.PagedData
+import dev.brahmkshatriya.echo.common.helpers.featNamesFromTitle
 import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.Feed
@@ -11,7 +12,6 @@ import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.extension.DeezerApi
 import dev.brahmkshatriya.echo.extension.DeezerExtension
 import dev.brahmkshatriya.echo.extension.DeezerParser
-import dev.brahmkshatriya.echo.extension.featNamesFromTitle
 import kotlinx.coroutines.async
 import kotlinx.coroutines.supervisorScope
 import kotlinx.serialization.json.JsonObject
@@ -87,11 +87,7 @@ class DeezerArtistClient(private val deezerExtension: DeezerExtension, private v
                 .map { parser.graftFavTrack(it) }
         } else {
             val snapshot = deezerExtension.getLikedSnapshotCached()
-            snapshot.entries.mapNotNull { entry ->
-                val id = parser.run { entry.unwrap().str("SNG_ID") }
-                if (id.isNullOrBlank()) null
-                else full[id] ?: parser.run { runCatching { graftFavTrack(entry) }.getOrNull() }
-            }
+            snapshot.entries.mapNotNull { parser.pickLikedTrack(full, it) }
         }.let { filterArtistLikedTracks(it, artist.id, artist.name) }
     }
 
@@ -266,4 +262,10 @@ class DeezerArtistClient(private val deezerExtension: DeezerExtension, private v
             "RELATED_ARTISTS"
         )
     }
+}
+
+private fun DeezerParser.pickLikedTrack(full: Map<String, Track>, entry: JsonObject): Track? {
+    val id = entry.unwrap().str("SNG_ID")
+    if (id.isNullOrBlank()) return null
+    return full[id] ?: runCatching { graftFavTrack(entry) }.getOrNull()
 }
