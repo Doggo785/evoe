@@ -49,20 +49,51 @@ class DeezerTrackClient(private val deezerExtension: DeezerExtension, private va
 
             val (finalUrl, fallbackTrack) = when {
                 mjString.contains("Track token has no sufficient rights on requested media") || mediaIsEmpty -> {
+                    // Step down on the *same track* first. This branch used to jump straight
+                    // to FALLBACK_ID, which streams a different recording under the original's title.
+                    // Field report (upstream issue, 2026-10): "Only Love Can Save Me Now - Acoustic" and
+                    // "Death by Rock and Roll - Acoustic" (The Pretty Reckless), from Deezer Liked
+                    // Songs, played the STANDARD versions while the player showed the acoustic titles.
+                    // Region-dependent, and the two halves were measured separately:
+                    //   on a phone where the acoustic has no 320 the relay THROWS "Song not available",
+                    //     the outer catch below steps 320 -> 128, and the acoustic plays correctly;
+                    //   in the reporter's region the same unavailability arrives as an HTTP 200 with an
+                    //     EMPTY `media` array instead - nothing throws, no licence string - so it landed
+                    //     here and substituted FALLBACK_ID's audio.
+                    // So the bug was a hole between two existing ladders, not a missing one.
+                    // The licence branch above handles "License token has no sufficient rights"; the
+                    // outer catch handles anything that THROWS. mediaIsEmpty is neither: it is a
+                    // SUCCESSFUL response that simply has no media for the requested format. Treating
+                    // "not available in THIS format" as "not available at all" is what skipped the
+                    // step-down.
+                    // The track-token string is stepped down too, deliberately. getMediaUrl
+                    // (flac/320) posts only {formats, ids} and NO track_tokens, so that sentence can
+                    // only reach us there as Deezer's error about the relay's token passed through -
+                    // and whether the relay passes bodies through is NOT KNOWN. getMP3MediaUrl (128)
+                    // does send track_tokens, so there it is about ours. Either way the sentence says
+                    // "on requested media", i.e. it is about the FORMAT, and stepping down first is
+                    // safe under both readings because the fallback is still reached at the bottom.
+                    // Bounded at one request per quality: the recursion strictly descends
+                    // flac -> 320 -> 128 and the bottom rung has no lower quality, so a track cannot
+                    // revisit a rung. Worst case is +3 requests versus the old immediate substitution,
+                    // and only on tracks that were already failing. In the COMMON case the extra call
+                    // goes to media.deezer.com and REPLACES the fallback's relay call, so the shared
+                    // unauthenticated relay sees no more traffic than before.
+                    val lower = stepDownQuality(quality)
+                    if (lower != null) return createStreamableForQuality(track, lower, retry)
+
+                    // Bottom rung only. The `else` arm that used to live here - a
+                    // getMediaUrl(track.copy(id = fallBackId), quality) for flac/320 - is gone rather
+                    // than kept as a belt, because the step-down above makes it unreachable and leaving
+                    // it would imply the substitution can still happen at a high quality. It cannot:
+                    // by here `quality` is "128" or "mp3".
                     val fallBackId = track.extras["FALLBACK_ID"].orEmpty()
-                    if (quality == "128") {
-                        val fallbackObject = api.track(fallBackId)
-                        val resultOj = fallbackObject["results"]?.jsonObject!!
-                        val fallBackTrack = parser.run { resultOj.toTrack() }
-                        val fbMediaJson = api.getMP3MediaUrl(fallBackTrack, true)
-                        val url = extractUrlFromJson(fbMediaJson)!!
-                        url to fallBackTrack
-                    } else {
-                        val fallbackParsed = track.copy(id = fallBackId)
-                        val fallbackMediaJson = api.getMediaUrl(fallbackParsed, quality)
-                        val url = extractUrlFromJson(fallbackMediaJson)!!
-                        url to fallbackParsed
-                    }
+                    val fallbackObject = api.track(fallBackId)
+                    val resultOj = fallbackObject["results"]?.jsonObject!!
+                    val fallBackTrack = parser.run { resultOj.toTrack() }
+                    val fbMediaJson = api.getMP3MediaUrl(fallBackTrack, true)
+                    val url = extractUrlFromJson(fbMediaJson)!!
+                    url to fallBackTrack
                 }
 
                 mjString.contains("An error occurred while decoding track token") -> {
@@ -94,11 +125,45 @@ class DeezerTrackClient(private val deezerExtension: DeezerExtension, private va
             }
             val keySourceId = fallbackTrack?.id ?: currentTrackId
 
+            // When a substitution happened, say so - a silent swap is the actual defect.
+            // fallbackTrack is non-null ONLY on the two substituting branches above, and until now it
+            // was consumed solely for the Blowfish key, so the user had no way to tell that the audio
+            // was a different recording from the title on screen.
+            // It travels in extras because this function cannot reach the display. The Track
+            // the player titles from was built by loadTrack, long before this call, and the Streamable
+            // returned here carries no song metadata - `title` below is the QUALITY label. So the
+            // signal is handed to loadStreamableMedia, which builds the Source that the player's
+            // subtitle pill and the quality sheet read. See the Raw(title = ...) note there.
+            // And not by changing the track's own title, which would be the obvious idea and
+            // is the risky one: the knowledge arrives AFTER loadTrack has built the item, and a
+            // mid-play metadata change runs through MediaMetadata.equals (which EXCLUDES extras),
+            // StreamableMediaSource.canUpdateMediaItem's field gate, and PlayerTrackAdapter's
+            // lastBoundMediaId - the three paths that cost several builds of album-art bugs.
+            // A presence marker, not the substitute's title. The label can only be read in the
+            // quality sheet: the player's pill uses FormatUtils.getDetailsFormatFirst, which appends
+            // source titles LAST by design (when the line is cut the codec and bitrate are the part
+            // worth keeping), and the pill is one line of 12sp inside a 210dp maxWidth - about 30
+            // characters, which toAudioDetails' own "MPEG 128 kbps - 44100 Hz - 2ch" already
+            // fills. So anything appended after it is past the ellipsis no matter how short, and a
+            // long label bought nothing the sheet did not already give.
+            // Gated on a different track id, not on fallbackTrack != null - and that fixes
+            // a bug in the first cut of this code. fallbackTrack is non-null on TWO branches, and only
+            // one of them is a substitution: the "An error occurred while decoding track token" branch
+            // re-fetches api.track(currentTrackId), i.e. the SAME recording with a fresh token. The
+            // earlier `fallbackTrack?.title` form labelled that as an alternate version, which is a
+            // false claim about the audio - exactly the kind of mislabelling this whole change exists
+            // to remove. A differing id is the honest test, and it is structurally right too: the
+            // FALLBACK branch fetches FALLBACK_ID, the token branch fetches currentTrackId.
+            val alternateRecording = isAlternateRecording(fallbackTrack?.id, currentTrackId)
+
             Streamable.server(
                 id = finalUrl,
                 quality = qualityValue,
                 title = qualityTitle,
-                extras = mapOf("key" to Utils.createBlowfishKey(keySourceId))
+                extras = buildMap {
+                    put("key", Utils.createBlowfishKey(keySourceId))
+                    if (alternateRecording) put(ALT_VERSION_EXTRA, "1")
+                }
             )
         } catch (e: Exception) {
             if (e.message?.contains("Song not available") == true) {
@@ -164,16 +229,34 @@ class DeezerTrackClient(private val deezerExtension: DeezerExtension, private va
             streamable
         }
 
+        // Raw(...) is constructed directly instead of via toSource(), and only to carry a
+        // title. InputProvider.toSource(id, isVideo, isLive) does not forward one, so every Deezer
+        // Source has title == null - which is why FormatUtils.sourceTitles' own comment says Deezer
+        // contributes "a single short title or nothing". Setting it here is what makes a substituted
+        // recording visible, in two surfaces that already exist: PlayerFragment's subtitle pill, via
+        // FormatUtils.getDetailsFormatFirst; and QualitySelectionBottomSheet's source chip,
+        // `it.title ?: getString(quality_x, ...)`.
+        // Do NOT "tidy" this by adding a title parameter to toSource(). That function is in
+        // :common, and an optional parameter with a default is BINARY-INCOMPATIBLE there - Kotlin
+        // compiles the old signature away, so every already-built extension breaks. Constructing Raw
+        // directly keeps the whole change inside this module, with no ABI surface at all.
+        // Null title when nothing was substituted, so the normal case is byte-identical to
+        // the old toSource() result and the pill shows exactly what it showed before.
+        val alternateRecording = resolvedStreamable.extras.containsKey(ALT_VERSION_EXTRA)
         return if (resolvedStreamable.quality == 12) {
             resolvedStreamable.id.toSource().toMedia()
         } else {
-            Streamable.InputProvider { start, _ ->
-                val contentLength = Utils.getContentLength(resolvedStreamable.id, client)
-                Pair(
-                    AudioStreamProvider.openStream(resolvedStreamable, client, start),
-                    contentLength - start
-                )
-            }.toSource(id = resolvedStreamable.id).toMedia()
+            Streamable.Source.Raw(
+                streamProvider = Streamable.InputProvider { start, _ ->
+                    val contentLength = Utils.getContentLength(resolvedStreamable.id, client)
+                    Pair(
+                        AudioStreamProvider.openStream(resolvedStreamable, client, start),
+                        contentLength - start
+                    )
+                },
+                id = resolvedStreamable.id,
+                title = if (alternateRecording) ALT_VERSION_LABEL else null
+            ).toMedia()
         }
     }
 
@@ -297,4 +380,32 @@ class DeezerTrackClient(private val deezerExtension: DeezerExtension, private va
     }
 
     private val placeholderPrefix = "dzp:"
+
+    companion object {
+        // Next lower quality for the same-track step-down. "128" and "mp3" (MP3_MISC) are
+        // bottom rungs - nothing lower exists, so the fallback substitution below is the
+        // only remaining option.
+        internal fun stepDownQuality(quality: String): String? = when (quality) {
+            "flac" -> "320"
+            "320" -> "128"
+            else -> null
+        }
+
+        // True only when the resolved audio is a different recording from the requested one.
+        // Gated on a differing id, not on fallbackTrack != null: the track-token branch
+        // re-fetches the SAME recording with a fresh token, which must not be labelled.
+        internal fun isAlternateRecording(fallbackTrackId: String?, currentTrackId: String): Boolean =
+            fallbackTrackId != null && fallbackTrackId != currentTrackId
+
+        // Hand-off key for a substituted recording, written by createStreamableForQuality and
+        // read by loadStreamableMedia. Internal to this file - it never reaches a Track's extras, so it
+        // cannot collide with the TRACK_TOKEN / FALLBACK_ID keys that do.
+        private const val ALT_VERSION_EXTRA = "ALT_VERSION"
+
+        // Hardcoded English, consistent with this module. The extension has no resources
+        // and no locale plumbing for display strings; its sibling labels ("FLAC", "320kbps",
+        // "128kbps", "MP3") are hardcoded in createStreamableForQuality the same way. If this module
+        // ever gains localisation, these move together.
+        private const val ALT_VERSION_LABEL = "Alt version"
+    }
 }
