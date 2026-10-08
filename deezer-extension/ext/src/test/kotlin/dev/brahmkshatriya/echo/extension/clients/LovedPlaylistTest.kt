@@ -2,8 +2,6 @@ package dev.brahmkshatriya.echo.extension.clients
 
 import dev.brahmkshatriya.echo.common.models.Playlist
 import dev.brahmkshatriya.echo.common.models.Shelf
-import dev.brahmkshatriya.echo.extension.DeezerParser
-import dev.brahmkshatriya.echo.extension.DeezerSession
 import dev.brahmkshatriya.echo.extension.clients.DeezerLibraryClient.Companion.prependLovedCard
 import dev.brahmkshatriya.echo.extension.clients.DeezerLibraryClient.Companion.withLovedCard
 import dev.brahmkshatriya.echo.extension.clients.DeezerPlaylistClient.Companion.FAVORITES_EXTRA
@@ -25,8 +23,6 @@ import org.junit.Test
  * opened-card playback stay device-verified.
  */
 class LovedPlaylistTest {
-
-    private val parser = DeezerParser(DeezerSession())
 
     private fun page(json: String): JsonObject =
         Json.parseToJsonElement(json).jsonObject
@@ -66,14 +62,11 @@ class LovedPlaylistTest {
         }]}]}}"""
     )
 
-    private fun playlist(id: String, extras: Map<String, String> = mapOf()) =
-        Playlist(id = id, title = "P", isEditable = true, extras = extras)
-
     // Detection.
 
     @Test
     fun `flagged entry resolves with real id, exact title and cover`() {
-        val loved = parser.findLovedPlaylist(lovedPage())!!
+        val loved = testParser.findLovedPlaylist(lovedPage())!!
         assertEquals("13601863481", loved.id)
         assertEquals("Favourite tracks", loved.title)
         assertNotNull(loved.cover)
@@ -81,18 +74,18 @@ class LovedPlaylistTest {
 
     @Test
     fun `type 4 entry resolves without the flag`() {
-        val loved = parser.findLovedPlaylist(lovedPage(withFlag = false))!!
+        val loved = testParser.findLovedPlaylist(lovedPage(withFlag = false))!!
         assertEquals("13601863481", loved.id)
     }
 
     @Test
     fun `normal playlists do not resolve`() {
-        assertNull(parser.findLovedPlaylist(normalPage()))
+        assertNull(testParser.findLovedPlaylist(normalPage()))
     }
 
     @Test
     fun `empty page does not resolve`() {
-        assertNull(parser.findLovedPlaylist(page("""{"results":{"sections":[]}}""")))
+        assertNull(testParser.findLovedPlaylist(page("""{"results":{"sections":[]}}""")))
     }
 
     @Test
@@ -100,7 +93,7 @@ class LovedPlaylistTest {
         val entry = page(
             """{"data":{"ART_ID":"577666","ART_NAME":"Childish Gambino","__TYPE__":"artist"}}"""
         )
-        assertFalse(parser.run { entry.isLovedPlaylistEntry() })
+        assertFalse(testParser.run { entry.isLovedPlaylistEntry() })
     }
 
     // Routing tag: the resolved card keeps the favorites key so open/play route
@@ -108,7 +101,7 @@ class LovedPlaylistTest {
 
     @Test
     fun `tagged real card still routes to favorites`() {
-        val loved = parser.findLovedPlaylist(lovedPage())!!
+        val loved = testParser.findLovedPlaylist(lovedPage())!!
         val tagged = loved.copy(extras = loved.extras + mapOf(FAVORITES_EXTRA to "1"))
         assertTrue(isFavoritesPlaylist(tagged))
         assertEquals("13601863481", tagged.id)
@@ -119,10 +112,10 @@ class LovedPlaylistTest {
 
     @Test
     fun `all tab heads the real card`() {
-        val loved = parser.findLovedPlaylist(lovedPage())!!
+        val loved = testParser.findLovedPlaylist(lovedPage())!!
         val shelf = Shelf.Lists.Items(
             id = "Playlists", title = "Playlists",
-            list = listOf(playlist("1"), playlist("2"))
+            list = listOf(testPlaylist("1"), testPlaylist("2"))
         )
         val result = withLovedCard("Playlists", shelf, loved) as Shelf.Lists.Items
         assertEquals(listOf("13601863481", "1", "2"), result.list.map { it.id })
@@ -133,7 +126,7 @@ class LovedPlaylistTest {
     fun `all tab hides the card when deezer does not send it`() {
         val shelf = Shelf.Lists.Items(
             id = "Playlists", title = "Playlists",
-            list = listOf(playlist("1"))
+            list = listOf(testPlaylist("1"))
         )
         val result = withLovedCard("Playlists", shelf, null) as Shelf.Lists.Items
         assertEquals(listOf("1"), result.list.map { it.id })
@@ -146,8 +139,8 @@ class LovedPlaylistTest {
 
     @Test
     fun `playlists tab heads the real card row`() {
-        val loved = parser.findLovedPlaylist(lovedPage())!!
-        val rows = listOf(Shelf.Item(playlist("1")))
+        val loved = testParser.findLovedPlaylist(lovedPage())!!
+        val rows = listOf(Shelf.Item(testPlaylist("1")))
         val result = prependLovedCard(rows, loved)
         assertEquals(2, result.size)
         assertEquals("13601863481", result.first().id)
@@ -155,7 +148,7 @@ class LovedPlaylistTest {
 
     @Test
     fun `playlists tab hides the card row when deezer does not send it`() {
-        val rows = listOf(Shelf.Item(playlist("1")))
+        val rows = listOf(Shelf.Item(testPlaylist("1")))
         assertEquals(rows, prependLovedCard(rows, null))
     }
 }
