@@ -1,6 +1,7 @@
 package dev.brahmkshatriya.echo.ui.feed
 
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.core.view.isVisible
 import androidx.core.view.updatePaddingRelative
@@ -52,10 +53,35 @@ class FeedFragment : Fragment(R.layout.fragment_generic_collapsable) {
         // genuine pause gets missed. 500 is the point where a fast scroll costs zero requests.
         const val WARM_DEBOUNCE_MS = 500L
 
-        fun getBundle(title: String, subtitle: String?) = Bundle().apply {
+        fun getBundle(
+            title: String,
+            subtitle: String?,
+            extensionId: String? = null,
+            feedId: String? = null,
+        ) = Bundle().apply {
             putString("title", title)
             putString("subtitle", subtitle)
+            putString("extensionId", extensionId)
+            putString("feedId", feedId)
         }
+
+        /**
+         * Resolves the feed routing ids, preferring the fragment arguments.
+         *
+         * Arguments survive process death via FragmentManager saved state; the activity-scoped
+         * VM does not. After a kill while locked, the activity VM is fresh (nulls) but the
+         * arguments still carry the ids, so they must win. The activity VM fallback covers
+         * fragments opened before the ids were put in the bundle.
+         * Pure logic lives in [FeedArgs] so it stays testable without Android.
+         */
+        fun resolveFeedIds(
+            argExtensionId: String?,
+            argFeedId: String?,
+            activityExtensionId: String?,
+            activityFeedId: String?,
+        ): Pair<String?, String?> = FeedArgs.resolveFeedIds(
+            argExtensionId, argFeedId, activityExtensionId, activityFeedId
+        )
     }
 
     class VM : ViewModel() {
@@ -72,20 +98,48 @@ class FeedFragment : Fragment(R.layout.fragment_generic_collapsable) {
         val feedViewModel by viewModel<FeedViewModel>()
         if (!vm.initialized) {
             vm.initialized = true
-            vm.extensionId = activityVm.extensionId
-            vm.feedId = activityVm.feedId
+            // Arguments survive a process kill while locked; the activity VM does not.
+            // Prefer arguments, fall back to the activity VM for pre-fix backstack entries.
+            val (extId, fId) = Companion.resolveFeedIds(
+                arguments?.getString("extensionId"),
+                arguments?.getString("feedId"),
+                activityVm.extensionId,
+                activityVm.feedId,
+            )
+            vm.extensionId = extId
+            vm.feedId = fId
             vm.feed = activityVm.feed
+            Log.d("FeedRestore", "init extId=$extId feedId=$fId memFeedNull=${vm.feed == null}")
         }
         feedViewModel.getFeedData(
             vm.feedId ?: "",
             cached = {
-                val extId = vm.extensionId!!
-                val feed = Cached.getFeedShelf(app, extId, vm.feedId!!)
-                FeedData.State(extId, null, feed.getOrThrow())
+                // Null ids mean a restored fragment with no routing info (pre-fix backstack
+                // after a process kill). Return null so the feed renders empty instead of
+                // throwing ExtensionNotFoundException(null).
+                val extId = vm.extensionId ?: return@getFeedData null
+                val fId = vm.feedId ?: return@getFeedData null
+                val feed = Cached.getFeedShelf(app, extId, fId).getOrElse {
+                    Log.d("FeedRestore", "cache miss extId=$extId feedId=$fId err=${it.message}")
+                    return@getFeedData null
+                }
+                Log.d("FeedRestore", "cache hit extId=$extId feedId=$fId tabs=${feed.tabs.size}")
+                FeedData.State(extId, null, feed)
             }
         ) {
-            val extension = music.getExtensionOrThrow(vm.extensionId)
-            val feed = savingFeed(app, extension, vm.feedId!!, vm.feed!!)
+            val extId = vm.extensionId ?: return@getFeedData null
+            val fId = vm.feedId ?: return@getFeedData null
+            // The in-memory Feed holds network lambdas and cannot survive process death.
+            // Serve the disk cache as the loaded state too: a null loaded state becomes
+            // PagedData.empty() downstream, which PagedSource prefers over the cached pages
+            // and renders as an empty feed ("So empty") despite cached content.
+            if (vm.feed == null) {
+                Log.d("FeedRestore", "no memFeed, serving cache as loaded extId=$extId feedId=$fId")
+                val feed = Cached.getFeedShelf(app, extId, fId).getOrElse { return@getFeedData null }
+                return@getFeedData FeedData.State(extId, null, feed)
+            }
+            val extension = music.getExtensionOrThrow(extId)
+            val feed = savingFeed(app, extension, fId, vm.feed!!)
             FeedData.State(extension.id, null, feed)
         }
     }
