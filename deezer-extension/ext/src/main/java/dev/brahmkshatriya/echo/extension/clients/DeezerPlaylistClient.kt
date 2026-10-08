@@ -38,12 +38,17 @@ class DeezerPlaylistClient(private val deezerExtension: DeezerExtension, private
         // Keyed on the extra rather than on the id's shape: ids are opaque strings and "inspired-by-1"
         // happens to be non-numeric today, which is an observation about one id, not a contract.
         if (playlist.extras.containsKey(SMART_TRACKLIST_EXTRA)) return playlist
-        // Virtual Favorite Tracks card (synthesized by DeezerLibraryClient): the id is not
-        // a real playlist, so api.playlist() would return an error body and `results!!` would
-        // NPE. The card already carries everything the detail header shows (title; cover is
-        // the playlist placeholder), so returning it unchanged loses nothing.
-        // Keyed on the extra rather than the id's shape, same rule as above: ids are opaque.
-        if (isFavoritesPlaylist(playlist)) return playlist
+        // Legacy synthetic Favorite Tracks card only (id "favorites", our own sentinel —
+        // not a Deezer id shape): it is not a real playlist, so api.playlist() would return
+        // an error body and `results!!` would NPE. The card already carries everything the
+        // detail header shows (title; cover is the playlist placeholder), so returning it
+        // unchanged loses nothing. A REAL loved playlist (numeric id resolved from Home,
+        // same routing extra) falls through to the normal fetch below, keeping cover and
+        // counts fresh. Routing still keys on the extra; the sentinel check only separates
+        // our unresolvable card from Deezer's resolvable playlist.
+        if (isFavoritesPlaylist(playlist) && playlist.id == DeezerLibraryClient.FAVORITES_ID) {
+            return playlist
+        }
         deezerExtension.handleArlExpiration()
         val jsonObject = api.playlist(playlist)
         val resultsObject = jsonObject["results"]!!.jsonObject
@@ -53,7 +58,13 @@ class DeezerPlaylistClient(private val deezerExtension: DeezerExtension, private
     fun loadTracks(playlist: Playlist): Feed<Track> = PagedData.Single {
         deezerExtension.handleArlExpiration()
         playlist.extras[SMART_TRACKLIST_EXTRA]?.let { return@Single smartTracklistTracks(it) }
-        if (isFavoritesPlaylist(playlist)) return@Single favoritesTracks()
+        // Legacy synthetic card only: its tracks come from the shared likes snapshot. A real
+        // loved playlist falls through to playlist.getSongs below — the official-app path —
+        // which stamps the real playlist_id so playback is logged against the playlist and
+        // resurfaces in Recently played.
+        if (isFavoritesPlaylist(playlist) && playlist.id == DeezerLibraryClient.FAVORITES_ID) {
+            return@Single favoritesTracks()
+        }
         // Tracks come from the dedicated playlist.getSongs (the app/deezer-py authoritative path), NOT from
         // deezer.pagePlaylist's inline SONGS (a summary that can carry a wrong same-named-artist twin).
         // pagePlaylist is still used for playlist METADATA in loadPlaylist above.
@@ -234,8 +245,9 @@ class DeezerPlaylistClient(private val deezerExtension: DeezerExtension, private
         // Set by DeezerParser.toSmartTracklist; the sole routing signal for the two branches above.
         const val SMART_TRACKLIST_EXTRA = "smarttracklist"
 
-        // Set by DeezerLibraryClient.favoritesCard; routes the virtual Favorite Tracks card
-        // through the passthrough above and favoritesTracks(). Same precedent as above.
+        // Set by DeezerLibraryClient.favoritesCard (legacy synthetic card) and by
+        // DeezerLibraryClient.resolveLovedPlaylist (real loved playlist, same routing);
+        // routes both through the favorites branches above. Same precedent as above.
         const val FAVORITES_EXTRA = "favorites"
 
         // Routing predicate for the virtual card. Keyed on the extra, never the id's shape:

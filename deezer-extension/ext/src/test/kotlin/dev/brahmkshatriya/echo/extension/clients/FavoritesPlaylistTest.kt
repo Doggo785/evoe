@@ -3,8 +3,6 @@ package dev.brahmkshatriya.echo.extension.clients
 import dev.brahmkshatriya.echo.common.models.Playlist
 import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.Track
-import dev.brahmkshatriya.echo.extension.DeezerParser
-import dev.brahmkshatriya.echo.extension.DeezerSession
 import dev.brahmkshatriya.echo.extension.clients.DeezerLibraryClient.Companion.favoritesCard
 import dev.brahmkshatriya.echo.extension.clients.DeezerLibraryClient.Companion.prependCardToPlaylists
 import dev.brahmkshatriya.echo.extension.clients.DeezerLibraryClient.Companion.withFavoritesCard
@@ -28,11 +26,6 @@ import org.junit.Test
  * missing the entry, and the opened card playing likes in order end to end.
  */
 class FavoritesPlaylistTest {
-
-    private val parser = DeezerParser(DeezerSession())
-
-    private fun playlist(id: String, extras: Map<String, String> = mapOf()) =
-        Playlist(id = id, title = "P", isEditable = true, extras = extras)
 
     // Card shape.
 
@@ -65,7 +58,7 @@ class FavoritesPlaylistTest {
     fun `all tab prepends the card to parsed playlists`() {
         val shelf = Shelf.Lists.Items(
             id = "Playlists", title = "Playlists",
-            list = listOf(playlist("1"), playlist("2"))
+            list = listOf(testPlaylist("1"), testPlaylist("2"))
         )
         val result = withFavoritesCard("Playlists", shelf) as Shelf.Lists.Items
         assertEquals("Playlists", result.id)
@@ -83,7 +76,7 @@ class FavoritesPlaylistTest {
     fun `all tab placement only depends on the items list, not its kind`() {
         val other = Shelf.Lists.Items(
             id = "Albums", title = "Albums",
-            list = listOf(playlist("9"))
+            list = listOf(testPlaylist("9"))
         )
         // withFavoritesCard is only ever called for the Playlists shelf; it prepends
         // to whatever Items list it is given without re-checking the kind.
@@ -95,7 +88,7 @@ class FavoritesPlaylistTest {
 
     @Test
     fun `playlists tab prepends the card row`() {
-        val rows = listOf(Shelf.Item(playlist("1")), Shelf.Item(playlist("2")))
+        val rows = listOf(Shelf.Item(testPlaylist("1")), Shelf.Item(testPlaylist("2")))
         val result = prependCardToPlaylists(rows)
         assertEquals(3, result.size)
         assertEquals("favorites", result.first().id)
@@ -117,14 +110,14 @@ class FavoritesPlaylistTest {
 
     @Test
     fun `real playlist does not route to favorites`() {
-        assertFalse(isFavoritesPlaylist(playlist("123")))
+        assertFalse(isFavoritesPlaylist(testPlaylist("123")))
     }
 
     @Test
     fun `smarttracklist extra alone does not route to favorites`() {
         assertFalse(
             isFavoritesPlaylist(
-                playlist("x", mapOf(DeezerPlaylistClient.SMART_TRACKLIST_EXTRA to "y"))
+                testPlaylist("x", mapOf(DeezerPlaylistClient.SMART_TRACKLIST_EXTRA to "y"))
             )
         )
     }
@@ -160,7 +153,7 @@ class FavoritesPlaylistTest {
 
     @Test
     fun `graft without fallback keeps top-level as-is`() {
-        val track = parser.graftFavTrack(
+        val track = testParser.graftFavTrack(
             entry("""{"SNG_ID":"42","SNG_TITLE":"Plain","ART_NAME":"Top Artist"}""")
         )
         assertEquals("42", track.id)
@@ -171,7 +164,7 @@ class FavoritesPlaylistTest {
 
     @Test
     fun `graft takes display fields from fallback but keeps the top-level id`() {
-        val track = parser.graftFavTrack(
+        val track = testParser.graftFavTrack(
             entry(
                 """{
                     "SNG_ID":"42","SNG_TITLE":"Dead Title","ART_NAME":"Dead Artist",

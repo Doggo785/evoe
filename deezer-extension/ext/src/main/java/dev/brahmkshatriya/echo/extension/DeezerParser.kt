@@ -21,10 +21,17 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 class DeezerParser(private val session: DeezerSession) {
+
+    // Deezer marks its loved-tracks playlist with data TYPE "4" (normal playlists are
+    // "0", charts "5"). Seen on device 2026-10-08; the explicit local_loved_playlist
+    // flag below stays the primary signal.
+    private val lovedPlaylistType = "4"
 
 
     /**
@@ -865,6 +872,33 @@ class DeezerParser(private val session: DeezerSession) {
             duration = data.long("DURATION")?.times(1000),
             creationDate = date
         )
+    }
+
+    /**
+     * The real loved-tracks playlist ("Favourite tracks" / "Coups de coeur") as Home's
+     * Recently played sends it: a genuine numeric playlist carrying the user-chosen cover,
+     * the exact Deezer title and the true counts. Detection keys on Deezer's own marker
+     * (layout_parameters.picture.local_loved_playlist) with data TYPE "4" as fallback —
+     * never on the title, which is localised. Pure: feeds the library card, no network.
+     */
+    fun findLovedPlaylist(page: JsonObject): Playlist? {
+        val sections = page["results"]?.jsonObject?.get("sections")?.jsonArray ?: return null
+        val entries = sections
+            .filterIsInstance<JsonObject>()
+            .flatMap { it["items"]?.jsonArray?.filterIsInstance<JsonObject>().orEmpty() }
+        return entries
+            .filter { it.isLovedPlaylistEntry() }
+            .mapNotNull { it.toEchoMediaItem() as? Playlist }
+            .firstOrNull { playlist -> playlist.id.all { it.isDigit() } }
+    }
+
+    fun JsonObject.isLovedPlaylistEntry(): Boolean {
+        val data = unwrap()
+        val isPlaylist = data.str("__TYPE__")?.contains("playlist") == true
+        val flagged = this["layout_parameters"]?.jsonObject
+            ?.get("picture")?.jsonObject
+            ?.get("local_loved_playlist")?.jsonPrimitive?.booleanOrNull == true
+        return isPlaylist && (flagged || data.str("TYPE") == lovedPlaylistType)
     }
 
     private fun JsonObject.toRadio(): Radio {

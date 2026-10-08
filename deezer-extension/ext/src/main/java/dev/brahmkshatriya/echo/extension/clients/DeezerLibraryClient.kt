@@ -9,6 +9,7 @@ import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.extension.DeezerApi
 import dev.brahmkshatriya.echo.extension.DeezerExtension
 import dev.brahmkshatriya.echo.extension.DeezerParser
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -93,7 +94,8 @@ class DeezerLibraryClient(
                 val json = cfg.request(api)
                 val items = cfg.extractor(json) ?: return@async null
                 if (cfg.id == TabId.PLAYLISTS) {
-                    withFavoritesCard(cfg.title, parser.run { items.toShelfItemsList(cfg.title) })
+                    val shelf = parser.run { items.toShelfItemsList(cfg.title) }
+                    withLovedCard(cfg.title, shelf, resolveLovedPlaylist())
                 } else parser.run { items.toShelfItemsList(cfg.title) }
             }
         }.awaitAll().filterNotNull()
@@ -115,7 +117,7 @@ class DeezerLibraryClient(
         val json = cfg.request(api)
         val arr = cfg.extractor(json) ?: return emptyList()
         val items = parser.run { arr.mapNotNull { it.jsonObject.toEchoMediaItem()?.toShelf() } }
-        if (id == TabId.PLAYLISTS.id) return prependCardToPlaylists(items)
+        if (id == TabId.PLAYLISTS.id) return prependLovedCard(items, resolveLovedPlaylist())
         return items
     }
 
@@ -130,15 +132,37 @@ class DeezerLibraryClient(
     // delegate rather than inlining the call sites so both shelves keep reading identically.
     private fun graftFavTrack(entry: JsonObject): Track = parser.graftFavTrack(entry)
 
+    // The real loved-tracks playlist, resolved from Home's Recently played where Deezer
+    // actually sends it (the library payload never carries it — verified on device
+    // 2026-10-08). A failed or missing resolve degrades to hidden, never to a
+    // synthesized card (user choice): library stays truthful with no placeholder.
+    // Cancellation is rethrown — a generic catch here would launder it into "hidden".
+    private suspend fun resolveLovedPlaylist(): Playlist? {
+        deezerExtension.handleArlExpiration()
+        val home = homePageOrNull()
+        val loved = home?.let { runCatching { parser.findLovedPlaylist(it) }.getOrNull() }
+        return loved?.let { item ->
+            item.copy(extras = item.extras + mapOf(DeezerPlaylistClient.FAVORITES_EXTRA to "1"))
+        }
+    }
+
+    private suspend fun homePageOrNull(): JsonObject? {
+        return try {
+            api.page("home")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     companion object {
-        // Virtual "Favorite Tracks" playlist: Deezer's tab_playlist no longer carries the
-        // favorites pseudo-playlist the real app shows, so the library synthesizes the card
-        // at the head of the Playlists shelf (All tab and Playlists tab alike, even when the
-        // user owns zero playlists). The routing key is DeezerPlaylistClient.FAVORITES_EXTRA
-        // (same precedent as SMART_TRACKLIST_EXTRA); the id is non-numeric so it can never
-        // collide with a real playlist id. Opening the card yields a Playlist context, so
-        // taps play the likes in order via the existing ordered-collection path — no
-        // tap-logic change needed.
+        // LEGACY synthetic "Favorite Tracks" card: kept for already-cached items carrying
+        // the FAVORITES_EXTRA routing key. New loads resolve the real loved playlist from
+        // Home instead (resolveLovedPlaylist) and never synthesize. The id stays non-numeric
+        // so it can never collide with a real playlist id. Opening the card yields a Playlist
+        // context, so taps play the likes in order via the existing ordered-collection path —
+        // no tap-logic change needed.
         const val FAVORITES_ID = "favorites"
         const val FAVORITES_TITLE = "Favorite Tracks"
 
@@ -166,5 +190,17 @@ class DeezerLibraryClient(
 
         internal fun prependCardToPlaylists(items: List<Shelf>): List<Shelf> =
             listOf(favoritesCard().toShelf()) + items
+
+        // Real-card placement for both Playlists surfaces: the loved playlist heads the
+        // shelf when Deezer sends it and the shelf is left untouched otherwise (hidden,
+        // never synthesized). Internal for tests; loadAll and loadSingle are the callers.
+        internal fun withLovedCard(title: String, shelf: Shelf?, loved: Playlist?): Shelf? {
+            if (loved == null) return shelf
+            val list = (shelf as? Shelf.Lists.Items)?.list.orEmpty()
+            return Shelf.Lists.Items(id = title, title = title, list = listOf(loved) + list)
+        }
+
+        internal fun prependLovedCard(items: List<Shelf>, loved: Playlist?): List<Shelf> =
+            if (loved == null) items else listOf(loved.toShelf()) + items
     }
 }
