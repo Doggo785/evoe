@@ -273,6 +273,12 @@ object ExceptionUtils {
             .url("https://paste.rs")
             .post(data.trace.toRequestBody())
             .build()
-        runCatching { client.newCall(request).await().body.string() }
+        runCatching {
+            val response = client.newCall(request).await()
+            // paste.rs answers 400+ with a Rocket HTML page. Copying that HTML as if it
+            // were a link is what the report shows; fall back to the raw trace instead.
+            check(response.isSuccessful) { "paste.rs: ${response.code}" }
+            response.body.string()
+        }
     }
 }

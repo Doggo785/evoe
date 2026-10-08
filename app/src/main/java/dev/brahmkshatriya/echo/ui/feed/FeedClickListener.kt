@@ -141,7 +141,13 @@ open class FeedClickListener(
         vm.extensionId = extensionId ?: return notFoundSnack(R.string.extension)
         vm.feedId = feedId ?: return notFoundSnack(R.string.item)
         vm.feed = feed ?: return notFoundSnack(R.string.feed)
-        fragment.openFragment<FeedFragment>(view, FeedFragment.getBundle(title.orEmpty(), subtitle))
+        // Ids also go in the bundle: the activity VM is RAM-only and is null after a
+        // process kill while locked, which used to surface as ExtensionNotFoundException(null).
+        // The Feed itself still travels via the VM (lambdas cannot parcel).
+        fragment.openFragment<FeedFragment>(
+            view,
+            FeedFragment.getBundle(title.orEmpty(), subtitle, extensionId, feedId)
+        )
         afterOpen()
         return true
     }
