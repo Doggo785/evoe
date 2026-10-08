@@ -30,6 +30,15 @@ class DeezerTrackClient(private val deezerExtension: DeezerExtension, private va
         return source["url"]?.jsonPrimitive?.content
     }
 
+    private suspend fun fetchMediaForTrack(trackId: String): Pair<String, Track> {
+        val fallbackObject = api.track(trackId)
+        val resultOj = fallbackObject["results"]?.jsonObject!!
+        val fallBackTrack = parser.run { resultOj.toTrack() }
+        val fbMediaJson = api.getMP3MediaUrl(fallBackTrack, true)
+        val url = extractUrlFromJson(fbMediaJson)!!
+        return url to fallBackTrack
+    }
+
     private suspend fun createStreamableForQuality(track: Track, quality: String, retry: Boolean = true): Streamable {
         return try {
             val currentTrackId = track.id
@@ -87,22 +96,11 @@ class DeezerTrackClient(private val deezerExtension: DeezerExtension, private va
                     // than kept as a belt, because the step-down above makes it unreachable and leaving
                     // it would imply the substitution can still happen at a high quality. It cannot:
                     // by here `quality` is "128" or "mp3".
-                    val fallBackId = track.extras["FALLBACK_ID"].orEmpty()
-                    val fallbackObject = api.track(fallBackId)
-                    val resultOj = fallbackObject["results"]?.jsonObject!!
-                    val fallBackTrack = parser.run { resultOj.toTrack() }
-                    val fbMediaJson = api.getMP3MediaUrl(fallBackTrack, true)
-                    val url = extractUrlFromJson(fbMediaJson)!!
-                    url to fallBackTrack
+                    fetchMediaForTrack(track.extras["FALLBACK_ID"].orEmpty())
                 }
 
                 mjString.contains("An error occurred while decoding track token") -> {
-                    val fallbackObject = api.track(currentTrackId)
-                    val resultOj = fallbackObject["results"]?.jsonObject!!
-                    val fallBackTrack = parser.run { resultOj.toTrack() }
-                    val fbMediaJson = api.getMP3MediaUrl(fallBackTrack, true)
-                    val url = extractUrlFromJson(fbMediaJson)!!
-                    url to fallBackTrack
+                    fetchMediaForTrack(currentTrackId)
                 }
 
                 else -> {
