@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.4.0](https://github.com/Doggo785/evoe/compare/v3.3.0...v3.4.0) (2026-10-08)
+
+
+### Features
+
+* **deezer:** serve all likes screens from one snapshot fetch ([c5b1527](https://github.com/Doggo785/evoe/commit/c5b152794244740b0082d471b7d54671ce091c76))
+* **likes:** include featuring appearances in artist liked tracks ([1e058b1](https://github.com/Doggo785/evoe/commit/1e058b12246488737fdaaad70ad31e4a846717f2))
+* **updater:** ask before installing app updates, with changelog ([d999401](https://github.com/Doggo785/evoe/commit/d999401dbf63cf74024e18d20b54e85314f79cbc))
+
+
+### Bug Fixes
+
+* **deezer:** resolve loved playlist card to the real entry ([4323cda](https://github.com/Doggo785/evoe/commit/4323cdafd9d0a17007f1b44a8c9a8edcbe542994))
+* **deezer:** step down quality before fallback track ([b670a18](https://github.com/Doggo785/evoe/commit/b670a189287b90853cb482b33eb2def460046d14))
+* **feed:** restore see-all content after process death ([27eac71](https://github.com/Doggo785/evoe/commit/27eac71021a18c8be65763adaa912988ac3a570f))
+* **player:** hold on Deezer stalls instead of skipping ([6f644b1](https://github.com/Doggo785/evoe/commit/6f644b1091c9cb9681e08fe0d87833d32f081e66))
+* **player:** verify likes on auto-advance and re-enable the heart ([3b385d2](https://github.com/Doggo785/evoe/commit/3b385d2ae60770875f87518599331453ba304c12))
+* **playlist:** edit drag and remove crash ([27eacc5](https://github.com/Doggo785/evoe/commit/27eacc53d9d8fe9455b1502a5bfe63c15f63c633))
+
 ## [3.3.0](https://github.com/Doggo785/evoe/compare/v3.2.0...v3.3.0) (2026-10-07)
 
 
