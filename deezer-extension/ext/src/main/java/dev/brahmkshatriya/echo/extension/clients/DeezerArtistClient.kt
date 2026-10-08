@@ -71,17 +71,28 @@ class DeezerArtistClient(private val deezerExtension: DeezerExtension, private v
      * Failures are swallowed deliberately: a likes outage must not break the whole artist page.
      */
     /**
-     * The artist's liked tracks, read through the session cache and pre-filtered on the
-     * raw form so only the handful of matches pay the full parse. Re-runnable: the menu
-     * feed below calls it again on invalidate (pull-to-refresh inside the opened list),
-     * which re-reads the cache — busted first on manual refresh — instead of replaying
-     * a stale captured list.
+     * The artist's liked tracks: fully-resolved records first (every credited artist,
+     * so featuring matches work), read through the session cache. Ids staying
+     * unresolved (failed chunk, odd record) fall back to the light graft per track,
+     * and a total resolve failure degrades to the light path entirely. Re-runnable:
+     * the menu feed below calls it again on invalidate (pull-to-refresh inside the
+     * opened list), which re-reads the caches — busted first on manual refresh —
+     * instead of replaying a stale captured list.
      */
     private suspend fun loadLikedTracks(artist: Artist): List<Track> {
-        val entries = deezerExtension.getLikedEntriesCached()
-        return entries.filter { parser.run { it.mentionsArtist(artist.id, artist.name) } }
-            .map { parser.graftFavTrack(it) }
-            .let { filterArtistLikedTracks(it, artist.id, artist.name) }
+        val full = deezerExtension.getLikedFullTracksCached()
+        return if (full.isEmpty()) {
+            val entries = deezerExtension.getLikedEntriesCached()
+            entries.filter { parser.run { it.mentionsArtist(artist.id, artist.name) } }
+                .map { parser.graftFavTrack(it) }
+        } else {
+            val snapshot = deezerExtension.getLikedSnapshotCached()
+            snapshot.entries.mapNotNull { entry ->
+                val id = parser.run { entry.unwrap().str("SNG_ID") }
+                if (id.isNullOrBlank()) null
+                else full[id] ?: parser.run { runCatching { graftFavTrack(entry) }.getOrNull() }
+            }
+        }.let { filterArtistLikedTracks(it, artist.id, artist.name) }
     }
 
     private suspend fun buildLikedShelf(artist: Artist): Shelf? {

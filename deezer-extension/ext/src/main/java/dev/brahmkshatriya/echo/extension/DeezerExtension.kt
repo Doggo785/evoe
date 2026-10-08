@@ -57,8 +57,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -270,6 +273,14 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
                 }
             }
         }
+        // Warm the full-resolve cache in the background too, so the per-artist menu
+        // (featuring matches need full records, not the light entries) is instant when
+        // first opened. Best-effort: a cold menu awaits the same call below.
+        if (likedFullCache == null) {
+            extensionScope.launch {
+                runCatching { getLikedFullTracksCached() }
+            }
+        }
     }
 
     //<============= HomeTab =============>
@@ -422,7 +433,64 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
     suspend fun getLikedEntriesCached(forceRefresh: Boolean = false): List<JsonObject> =
         getLikedSnapshotCached(forceRefresh).entries
 
+    @Volatile
+    private var likedFullCache: Pair<Long, Map<String, Track>>? = null
+    private val likedFullMutex = Mutex()
+
+    /**
+     * Session cache of FULLY-resolved liked tracks (every credited artist included),
+     * keyed by track id. The light snapshot carries only the main artist, so featuring
+     * guests are invisible without this resolve — the per-artist menu reads here first
+     * and falls back to the light entries per track when an id stayed unresolved.
+     *
+     * Incremental: only ids missing from the cache pay song.getListData (chunked by
+     * [LIKED_RESOLVE_CHUNK], batches of [LIKED_RESOLVE_PARALLELISM] chunks at a time);
+     * unliked ids are evicted on merge. TTL and bust shared with the snapshot above.
+     * A per-chunk failure skips that chunk (recovered on the next refresh), never the
+     * whole resolve; a total failure surfaces as an empty map and the caller degrades.
+     */
+    internal suspend fun getLikedFullTracksCached(): Map<String, Track> =
+        likedFullMutex.withLock {
+            val now = System.currentTimeMillis()
+            likedFullCache?.takeIf { now - it.first < LIKED_TTL_MS }?.second
+                ?: resolveAndStoreLikedFull()
+        }
+
+    private suspend fun resolveAndStoreLikedFull(): Map<String, Track> {
+        val snapshot = getLikedSnapshotCached()
+        val cached = likedFullCache?.second.orEmpty()
+        val ids = snapshot.entries.mapNotNull {
+            parser.run { it.unwrap().str("SNG_ID")?.takeIf { id -> id.isNotBlank() } }
+        }
+        val missing = idsToResolve(ids, cached)
+        val pages = coroutineScope {
+            missing.chunked(LIKED_RESOLVE_CHUNK).chunked(LIKED_RESOLVE_PARALLELISM)
+                .flatMap { batch ->
+                    batch.map { chunk ->
+                        async { runCatching { api.getListData(chunk) }.getOrNull().orEmpty() }
+                    }.awaitAll()
+                }.flatten()
+        }
+        val fresh = pages.flatMap { page ->
+            page["results"]?.jsonObject?.get("data")?.jsonArray.orEmpty()
+        }.mapNotNull { element ->
+            runCatching {
+                parser.run {
+                    (element as? JsonObject)?.unwrap()
+                        ?.takeIf { it.str("SNG_ID")?.isNotBlank() == true }
+                        ?.toTrack()
+                }
+            }.getOrNull()
+        }.associateBy { it.id }
+        return mergeFullCache(cached, snapshot.ids, fresh, snapshot.complete).also {
+            likedFullCache = System.currentTimeMillis() to it
+        }
+    }
+
     override suspend fun bustLikedCache() {
+        // Snapshot only: the full cache reconciles itself on the next resolve (newcomers
+        // resolved, unliked evicted), so a manual refresh re-fetches one light list
+        // instead of thousands of full records.
         likedSnapshotCache = null
     }
 
