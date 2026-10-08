@@ -114,6 +114,10 @@ object CrashKeys {
     private val serviceCreates = AtomicInteger(0)
 
     private val heapFirstRecorded = AtomicBoolean(false)
+    // Gates the one-shot heap_limit_mb write. A separate flag rather than reusing heapFirstRecorded,
+    // which also gates heap_first_at_age_s: folding them would mean a future change to either write
+    // silently changing when the other fires.
+    private val heapLimitRecorded = AtomicBoolean(false)
     private val heapPeakMb = AtomicInteger(0)
 
     /** Shared sampling interval for both heap tickers (activity + service). */
@@ -224,20 +228,22 @@ object CrashKeys {
      * Between them: (1) says a repeated checkpoint reports its last firing, (2) says an event you did not
      * checkpoint is invisible and the checkpoint you did fire will get the blame.
      */
-    private fun sampleHeap(usedKey: String, headroomKey: String) {
+    private fun sampleHeap(usedKey: String) {
         val rt = Runtime.getRuntime()
         val used = rt.totalMemory() - rt.freeMemory()
         val usedMb = (used / (1024 * 1024)).toInt()
-        val headroomMb = ((rt.maxMemory() - used) / (1024 * 1024)).toInt()
         set(usedKey, usedMb)
-        set(headroomKey, headroomMb)
+        // The growth ceiling, once per process. maxMemory() cannot change for the life of the process, so
+        // a later write could only repeat the first - hence CAS rather than last-write-wins, and hence no
+        // _first companion. Headroom at any sample is heap_limit_mb minus that sample's used value.
+        if (heapLimitRecorded.compareAndSet(false, true))
+            set("heap_limit_mb", (rt.maxMemory() / (1024 * 1024)).toInt())
         // Per-checkpoint FIRST sample, same reasoning as stampAge: a repeatedly-fired checkpoint's
         // last-write heap value is the dying-end reading, not the reading at the event you are
         // attributing to. heap_used_mb_conn on the build-1036 AA report was the LAST connect of the
         // session, not the first — which is exactly the misreading these companions prevent.
         if (firstStamped.add(usedKey)) {
             set("${usedKey}_first", usedMb)
-            set("${headroomKey}_first", headroomMb)
         }
         // First-ever sample: pins the STARTING point of the trajectory, which no last-write key can. CAS so
         // the first sampler wins even if two checkpoints race.
@@ -281,7 +287,7 @@ object CrashKeys {
     fun onServiceCreate() {
         stampAge("age_s_svc")
         set("service_create_count", serviceCreates.incrementAndGet())
-        sampleHeap("heap_used_mb_svc", "heap_headroom_mb_svc")
+        sampleHeap("heap_used_mb_svc")
     }
 
     // Sampled immediately AFTER AndroidAutoCallback.clearCaches(). heap_used_mb_conn is taken in
@@ -289,7 +295,7 @@ object CrashKeys {
     // last session left, and this measures what survives the clear. The difference is the browse caches.
     fun onAutoCachesCleared() {
         stampAge("age_s_auto_clear")
-        sampleHeap("heap_used_mb_auto_clear", "heap_headroom_mb_auto_clear")
+        sampleHeap("heap_used_mb_auto_clear")
     }
 
     /**
@@ -415,7 +421,7 @@ object CrashKeys {
     fun onQueueBuild(itemCount: Int) {
         stampAge("age_s_build")
         set("restore_build_count", itemCount)
-        sampleHeap("heap_used_mb_build", "heap_headroom_mb_build")
+        sampleHeap("heap_used_mb_build")
     }
 
     fun onQueueSize(count: Int) {
@@ -436,7 +442,7 @@ object CrashKeys {
         // covers/shelves that the svc-create and queue-build samples both miss, being earlier). Caller is
         // debounced 100ms + collectLatest (~once per settled switch/refresh); 3 Runtime reads + 3 key writes,
         // no allocation — not hot, no every-Nth gating needed.
-        sampleHeap("heap_used_mb_feed", "heap_headroom_mb_feed")
+        sampleHeap("heap_used_mb_feed")
     }
 
     fun onPlayingExtension(extensionId: String) {
@@ -454,7 +460,7 @@ object CrashKeys {
         // All three known crashes fired at MediaController connect, a few hundred ms after onCreate — so the
         // svc-create sample can already be stale. The svc→conn heap delta shows whether startup is climbing
         // fast or the heap was already high on arrival.
-        sampleHeap("heap_used_mb_conn", "heap_headroom_mb_conn")
+        sampleHeap("heap_used_mb_conn")
     }
 
     fun onControllerDisconnected(packageName: String) {
@@ -467,3 +473,29 @@ object CrashKeys {
         set("aa_connected", connected)
     }
 }
+
+/**
+ * The shared guard for any third-party string that reaches Crashlytics: strip URLs (signed CDN tokens
+ * live in them) and hard-cap.
+ *
+ * ⚠⚠ MOVED HERE FROM PlayerEventListener ON 2026-10-03 FOR THE REASON THAT FUNCTION'S OWN
+ * COMMENT GAVE FOR EXTRACTING IT: it was pulled out of its two call sites so the extension name would
+ * get "exactly the same treatment as the message rather than a second, drifting copy of the rule".
+ * App.kt's deezer_gateway key is a third caller in a third package, so the same argument applies one
+ * level up. The BODY IS UNCHANGED, which is what keeps lastCauses byte-identical - HealthMonitor
+ * requires that format to be fixed.
+ *
+ * ⚠️ THE REGEX IS HOISTED AND THE BEHAVIOUR IS NOT CHANGED. It was compiled per call at the old
+ * site; a file-level val compiles it once. Same pattern, same replacement, same trim-then-take order.
+ *
+ * ⚠️ IT STRIPS URLs AND CAPS LENGTH. IT DOES NOT STRIP IDENTIFIERS, and no caller should read
+ * it as a PII filter. A caller passing a string that might carry an account id has to say so at its
+ * own site - deezer_gateway's note in App.kt does.
+ *
+ * Top-level rather than a member of [CrashKeys] because a member extension function cannot be
+ * imported, and both callers live in other packages.
+ */
+internal fun String.scrubbedForCrashlytics(max: Int) =
+    replace(URL_PATTERN, "<url>").trim().take(max)
+
+private val URL_PATTERN = Regex("https?://\\S+")

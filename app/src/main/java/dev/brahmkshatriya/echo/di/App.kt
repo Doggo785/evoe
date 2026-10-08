@@ -12,8 +12,10 @@ import dev.brahmkshatriya.echo.BuildConfig
 import dev.brahmkshatriya.echo.common.helpers.ClientException
 import dev.brahmkshatriya.echo.common.models.Message
 import dev.brahmkshatriya.echo.common.models.NetworkConnection
+import dev.brahmkshatriya.echo.extension.DeezerGatewayException
 import dev.brahmkshatriya.echo.extensions.exceptions.AppException
 import dev.brahmkshatriya.echo.utils.CrashKeys
+import dev.brahmkshatriya.echo.utils.scrubbedForCrashlytics
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -282,6 +284,11 @@ data class App(
                         setCustomKey("health_report_type", "none")
                         setCustomKey("player_state", crashPlayerState)
                         setCustomKey("is_playing", crashIsPlaying)
+                        // Deezer gateway refusal detail, or "none". ALWAYS WRITTEN, per doc note 4 in
+                        // CrashKeys: this is a SNAPSHOT, not an accumulator, so a skipped write would
+                        // leave the previous report's refusal attached to an unrelated error. The
+                        // twin "none" write is in HealthMonitor.report for the same reason.
+                        setCustomKey("deezer_gateway", it.deezerGatewayDetail() ?: "none")
                         // Age at THIS instant, not at any checkpoint. See CrashKeys.onReportRecorded for
                         // why the checkpoint keys cannot answer "when did this happen".
                         // ⚠️ HealthMonitor.kt has the OTHER recordException call site; a report arriving
@@ -344,6 +351,50 @@ data class App(
         return null
     }
 
+    /**
+     * Detail of a [DeezerGatewayException] anywhere in the cause chain, for the `deezer_gateway` key;
+     * null when there is none.
+     *
+     * ⚠⚠ WHY THE KEY EXISTS AT ALL: THE EXCEPTION CARRIES ITS CAUSE AND THE REPORT DID NOT.
+     * DeezerGatewayException splits message from detail on purpose - a generic sentence for the user,
+     * `method`/`errorText` for the log - and Crashlytics renders the MESSAGE. So the 1113 issue arrived
+     * as 12 events across 3 users with a fixed string and nothing else: no method, no Deezer sentence,
+     * no way to tell an unsupported gateway LANG from a stale CSRF token from a refused getUserData.
+     * Those need different fixes. This key is the one place the distinction can land.
+     *
+     * ⚠⚠ THE CHAIN WALK IS MANDATORY, NOT STYLISTIC - same reason as [isLoginRequired]. What
+     * reaches this collector is AppException.Other WRAPPING the refusal (ExtensionUtils.get ->
+     * toAppException's `else -> Other(this, extension)`), so a check on the top node can never match.
+     *
+     * ⚠⚠ TWO ARMS, AND THE SECOND IS NOT BELT-AND-BRACES. The typed arm is the real one and is
+     * available because :app has `implementation(project(":deezer-extension"))` and the BUILT-IN Deezer
+     * is constructed directly, so its classes are on the app's own classloader and `is` matches.
+     * WHAT THE SECOND ARM COVERS: a Deezer extension installed as an APK or file would throw a
+     * same-named class from a DIFFERENT classloader - a distinct runtime type that `is` cannot match.
+     * Without the fallback that user's reports would read "none", which is indistinguishable from "no
+     * gateway error" and would send the next reader after the instrument instead of the bug.
+     *
+     * ⚠️ SCRUBBED BECAUSE errorText IS DEEZER'S OWN TEXT, through the same helper that guards
+     * lastCauses (URLs stripped, length capped). `method` and `lang` are ours and are short, so only
+     * the third field needs it.
+     */
+    private fun Throwable.deezerGatewayDetail(): String? {
+        var detail: String? = null
+        var t: Throwable? = this
+        while (t != null && detail == null) {
+            val gateway = t as? DeezerGatewayException
+            detail = when {
+                gateway != null -> "gw=${gateway.method} lang=${gateway.lang} " +
+                    "err=${gateway.errorText.scrubbedForCrashlytics(MAX_GATEWAY_ERROR_LEN)}"
+                t.message == DEEZER_GATEWAY_MESSAGE ->
+                    t.toString().scrubbedForCrashlytics(MAX_GATEWAY_DETAIL_LEN)
+                else -> null
+            }
+            t = t.cause
+        }
+        return detail
+    }
+
     private fun Throwable.isLoginRequired(): Boolean {
         var t: Throwable? = this
         while (t != null) {
@@ -351,5 +402,22 @@ data class App(
             t = t.cause
         }
         return false
+    }
+
+    companion object {
+        // Byte-identical to DeezerGatewayException's super-constructor message. Used ONLY by
+        // deezerGatewayDetail's fallback arm, for a Deezer extension loaded through DexLoader rather
+        // than the built-in one; the typed `is` check handles every other case. If the two texts drift
+        // apart, those users' reports read "none" and nothing else breaks.
+        private const val DEEZER_GATEWAY_MESSAGE = "Deezer refused this request."
+
+        // Matches the .take(300) on DeezerApi's GATEWAY-ERROR println, so the logcat line and this key
+        // cannot truncate the same sentence differently. Crashlytics caps a key VALUE at 1024 chars;
+        // 300 + the two short labelled fields leaves that untroubled.
+        private const val MAX_GATEWAY_ERROR_LEN = 300
+
+        // The fallback arm scrubs a whole toString() rather than one field, so it gets its own cap:
+        // 300 for the error text plus the method, lang and the type name around them.
+        private const val MAX_GATEWAY_DETAIL_LEN = 400
     }
 }

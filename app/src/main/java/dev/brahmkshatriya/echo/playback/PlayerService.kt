@@ -72,6 +72,7 @@ import dev.brahmkshatriya.echo.playback.listener.TrackingListener
 import dev.brahmkshatriya.echo.playback.renderer.AudioEffectsProcessor
 import dev.brahmkshatriya.echo.playback.renderer.PlayerBitmapLoader
 import dev.brahmkshatriya.echo.playback.renderer.RenderersFactory
+import dev.brahmkshatriya.echo.playback.source.StreamableDataSource
 import dev.brahmkshatriya.echo.playback.source.StreamableMediaSource
 import dev.brahmkshatriya.echo.ui.player.PlayerViewModel.Companion.KEEP_QUEUE
 import kotlinx.coroutines.async
@@ -332,7 +333,16 @@ class PlayerService : MediaLibraryService() {
                 // (Main; Player.Listener fires on the app looper).
                 isRestoreSeekArmed = { state.pendingRestoreSeek != null },
                 healthMonitor = healthMonitor,
-            ).also { it.app = app }
+            ).also {
+                it.app = app
+                // Watchdog open-in-flight signals (vars, not constructor params - see the note at
+                // PlayerEventListener.openInFlight). Static counters live where the opens happen.
+                it.openInFlight = { StreamableDataSource.openInFlight.get() }
+                // Covers media3's inter-retry gaps, where openInFlight is legitimately 0.
+                it.lastOpenEndMs = { StreamableDataSource.lastOpenEndMs.get() }
+                // TRACER - relSkip. Diffed per item; see PlayerState.releasedPrepareSkips.
+                it.releasedPrepareSkips = { state.releasedPrepareSkips.get() }
+            }
         )
         player.addListener(
             PlayerRadio(
