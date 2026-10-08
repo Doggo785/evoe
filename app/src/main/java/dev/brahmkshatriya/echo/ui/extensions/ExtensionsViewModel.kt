@@ -121,8 +121,12 @@ class ExtensionsViewModel(
         // The install-permission prompt is threaded in as a lambda rather than checked here, so it
         // only ever fires once an update actually exists (updateApp calls it after resolving the
         // URL, before downloading). Declining returns null, which falls through to the extension
-        // branch below exactly as "no app update" already does.
-        val appApk = updateApp(app) { activity.ensureCanInstallPackages() }
+        // branch below exactly as "no app update" already does. The update prompt travels the
+        // same way: it shows only once an update resolved, and Later falls through below the
+        // same way, re-offered on the next check.
+        val appApk = updateApp(app, { activity.ensureCanInstallPackages() }) { pending ->
+            awaitAppUpdateDecision(pending)
+        }
         runCatching {
             if (appApk != null) {
                 // 0L, not 0: saveToCache picks its folder from T::class.java.simpleName, so an Int
@@ -226,6 +230,8 @@ class ExtensionsViewModel(
 
     val installPromptFlow = MutableSharedFlow<File>()
     private val promptResultFlow = MutableSharedFlow<PromptResult>()
+    val appUpdatePromptFlow = MutableSharedFlow<AppUpdater.PendingAppUpdate>()
+    private val appUpdateDecisionFlow = MutableSharedFlow<Pair<String, Boolean>>()
     val installFileFlow = MutableSharedFlow<File>()
     val installedFlow = MutableSharedFlow<Pair<File, Result<Unit>>>()
     val linksDialogFlow = MutableSharedFlow<Pair<File, List<String>>>()
@@ -288,6 +294,19 @@ class ExtensionsViewModel(
         file: File, install: Boolean, type: ImportType, id: String, supportedLinks: List<String>
     ) = viewModelScope.launch {
         promptResultFlow.emit(PromptResult(file, install, type, id, supportedLinks))
+    }
+
+    // App-update prompt, same subscribe-then-emit shape as awaitInstallation above:
+    // the sheet cannot answer before this collector is listening. Keyed by tag so
+    // overlapping passes cannot answer for each other.
+    private suspend fun awaitAppUpdateDecision(pending: AppUpdater.PendingAppUpdate): Boolean {
+        return appUpdateDecisionFlow
+            .onSubscription { appUpdatePromptFlow.emit(pending) }
+            .first { it.first == pending.tag }.second
+    }
+
+    fun appUpdateDecided(tag: String, accepted: Boolean) = viewModelScope.launch {
+        appUpdateDecisionFlow.emit(tag to accepted)
     }
 
     // Tri-state. A plain Boolean conflated "no update available" with "we never found out", which
@@ -363,6 +382,9 @@ class ExtensionsViewModel(
             val viewModel by viewModel<ExtensionsViewModel>()
             collect(viewModel.installPromptFlow) {
                 ExtensionInstallerBottomSheet.newInstance(it).show(supportFragmentManager, null)
+            }
+            collect(viewModel.appUpdatePromptFlow) {
+                AppUpdateBottomSheet.newInstance(it).show(supportFragmentManager, null)
             }
             collect(viewModel.linksDialogFlow) {
                 createLinksDialog(it.first, it.second)

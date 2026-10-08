@@ -186,10 +186,41 @@ object AppUpdater {
         names.any { it in STORE_INSTALLERS }
     }.getOrDefault(true)
 
+    // The USER confirmation, threaded in as a lambda for the same reason as
+    // ensureInstallPermission: updateApp holds `app` and lambdas, not a host
+    // Activity, so it cannot show the prompt itself. Called after an update
+    // resolves and before anything downloads — declining returns null exactly
+    // like "no update", and the next check re-offers. Null keeps the legacy
+    // auto-install for callers without UI.
+    private suspend fun confirmOrNull(
+        pending: PendingAppUpdate?,
+        confirmUpdate: (suspend (PendingAppUpdate) -> Boolean)?
+    ): String? {
+        val resolved = pending ?: return null
+        val declined = confirmUpdate != null && !confirmUpdate(resolved)
+        if (declined) CrashKeys.onAppUpdateStage("declined")
+        return if (declined) null else resolved.downloadUrl
+    }
+
+    // Shared by the "release" and "stable" arms below, which stay separate on
+    // purpose (see the stable arm's note): same check, two channels.
+    private suspend fun resolveGithubUpdate(
+        version: String,
+        githubRepo: String,
+        confirmUpdate: (suspend (PendingAppUpdate) -> Boolean)?,
+        context: Context?
+    ): String? {
+        val currentVersion = version.substringBefore('_')
+        val updateUrl = "https://api.github.com/repos/$githubRepo/releases"
+        val pending = checkPendingAppUpdate(currentVersion, updateUrl, client, context)
+        return confirmOrNull(pending, confirmUpdate)
+    }
+
     @Suppress("KotlinConstantConditions")
     suspend fun updateApp(
         app: App,
-        ensureInstallPermission: suspend () -> Boolean = { true }
+        ensureInstallPermission: suspend () -> Boolean = { true },
+        confirmUpdate: (suspend (PendingAppUpdate) -> Boolean)? = null
     ): File? {
         // Install-source gate. This is the ONLY thing standing between a Play user and a sideloaded
         // APK, and it must run before any network work. It sits ALONGSIDE the build-type check
@@ -249,18 +280,14 @@ object AppUpdater {
                 //   It reads /releases/LATEST, so the release must be published and not a draft or
                 //         pre-release.
                 "release" -> {
-                    val currentVersion = version.substringBefore('_')
-                    val updateUrl = "https://api.github.com/repos/$githubRepo/releases"
-                    getGithubUpdateUrl(currentVersion, updateUrl, client, app.context, semver = true)
+                    resolveGithubUpdate(version, githubRepo, confirmUpdate, app.context)
                         ?: return null
                 }
 
                 // UPSTREAM'S CHANNEL, NOT BUILT HERE — kept so a stable build would still work if one were
                 // ever produced. See the buildTypes note in app/build.gradle.kts.
                 "stable" -> {
-                    val currentVersion = version.substringBefore('_')
-                    val updateUrl = "https://api.github.com/repos/$githubRepo/releases"
-                    getGithubUpdateUrl(currentVersion, updateUrl, client, app.context, semver = true)
+                    resolveGithubUpdate(version, githubRepo, confirmUpdate, app.context)
                         ?: return null
                 }
 
@@ -608,57 +635,15 @@ object AppUpdater {
         // APP update path (the release/stable arms in updateApp) is the only caller that passes true.
         semver: Boolean = false,
     ) = run {
-        // Every message below names the repo. This function has TWO callers — updateApp (the APP
-        // update, repo = app_github_repo) and getUpdateFileUrl (the EXTENSION update, repo = that
+        // Every message below names the repo. This function has TWO callers — checkPendingAppUpdate
+        // (the APP update, repo = app_github_repo) and getUpdateFileUrl (the EXTENSION update, repo = that
         // extension's) — and their failures were previously worded identically, so a user-facing
         // report could not be attributed to either path. The repo is a plain string, so it survives
         // R8 obfuscation and shows up in the in-app trace view where class names do not.
         // Diagnostics only: no control flow or exception type changes.
         val (user, repo) = githubRegex.find(updateUrl)?.destructured
             ?: throw Exception("Invalid Github URL: $updateUrl")
-        val url = "https://api.github.com/repos/$user/$repo/releases/latest"
-        // ⚠⚠ THE STATUS IS CHECKED BEFORE THE BODY IS DESERIALISED. IT WAS NOT, FOR FOUR
-        // MONTHS, AND THAT IS THE WHOLE BUG: the old body read `it.body.string().toData<...>()`
-        // unconditionally, so 403 rate-limit, 403 refusal, 404 no-releases, 404 repo-gone, 401 and
-        // every 5xx collapsed into ONE MissingFieldException naming three absent fields. The error
-        // was muted in May and rose to 8 events on build 1106 alone; three unrelated repos failed
-        // identically within one second, which is what proved the REQUESTS were failing rather than
-        // the repos having lost their releases.
-        val cacheKey = "$user/$repo"
-        val cached = context?.getFromCache<CachedRelease>(cacheKey, GITHUB_RELEASE_CACHE, true)
-        val request = Request.Builder().url(url)
-            .apply { cached?.let { header("If-None-Match", it.etag) } }
-            .build()
-        val res = runCatching {
-            client.newCall(request).await().use { response ->
-                when {
-                    // 304 carries NO BODY - the cached copy is the answer, and this request cost
-                    // nothing against the hourly limit.
-                    response.code == 304 -> cached?.response ?: throw Exception(
-                        "GitHub returned 304 for $user/$repo with no cached release"
-                    )
-
-                    response.isSuccessful -> response.body.string()
-                        .toData<GithubReleaseResponse>().getOrThrow()
-                        .also { parsed ->
-                            response.header("ETag")?.let { tag ->
-                                context?.saveToCache(
-                                    cacheKey, CachedRelease(tag, parsed), GITHUB_RELEASE_CACHE, true
-                                )
-                            }
-                        }
-
-                    else -> throw githubHttpError(user, repo, response)
-                }
-            }
-        }.getOrElse {
-            // ⚠️ A RATE LIMIT IS RETHROWN UNWRAPPED, DELIBERATELY. The wrapper below exists to
-            // attribute a failure to a REPO, and a rate limit is not about the repo - it is about the
-            // IP, and the next repo would fail identically. Wrapping it would also make the
-            // pass-level test depend on the chain walk surviving one more layer than necessary.
-            if (it is GithubRateLimitException) throw it
-            throw Exception("Failed to fetch latest release for $user/$repo", it)
-        }
+        val res = fetchLatestRelease(user, repo, client, context)
         // ⚠️ TWO COMPARISON MODES, AND STRING INEQUALITY IS STILL THE DEFAULT — THIS FUNCTION IS SHARED
         // BY THREE CALLERS WITH THREE DIFFERENT NOTIONS OF "version". Verified 2026-09-05:
         //   updateApp (APP update)            -> currentVersion = versionName.substringBefore('_'),
@@ -698,6 +683,123 @@ object AppUpdater {
         }
     }
 
+    /**
+     * The single fetch behind the update check, so the check and the prompt notes
+     * never disagree about what "latest" is. Same behaviour as the inlined block
+     * it was extracted from: the status is checked before the body is
+     * deserialised, a 304 answers from the ETag cache, and a rate limit is
+     * rethrown unwrapped.
+     */
+    private suspend fun fetchLatestRelease(
+        user: String,
+        repo: String,
+        client: OkHttpClient,
+        context: Context?
+    ): GithubReleaseResponse {
+        val url = "https://api.github.com/repos/$user/$repo/releases/latest"
+        val cacheKey = "$user/$repo"
+        val cached = context?.getFromCache<CachedRelease>(cacheKey, GITHUB_RELEASE_CACHE, true)
+        val request = Request.Builder().url(url)
+            .apply { cached?.let { header("If-None-Match", it.etag) } }
+            .build()
+        return runCatching {
+            client.newCall(request).await().use { response ->
+                readReleaseResponse(response, user, repo, cached, context)
+            }
+        }.getOrElse {
+            throw if (it is GithubRateLimitException) it
+            else Exception("Failed to fetch latest release for $user/$repo", it)
+        }
+    }
+
+    // Reads one /latest answer: 304 serves the ETag cache, anything off-200 says
+    // what happened instead of collapsing into a missing-field parse error.
+    private fun readReleaseResponse(
+        response: Response,
+        user: String,
+        repo: String,
+        cached: CachedRelease?,
+        context: Context?
+    ): GithubReleaseResponse = when {
+        // 304 carries NO BODY - the cached copy is the answer, and this request cost
+        // nothing against the hourly limit.
+        response.code == 304 -> cached?.response ?: throw Exception(
+            "GitHub returned 304 for $user/$repo with no cached release"
+        )
+
+        response.isSuccessful -> response.body.string()
+            .toData<GithubReleaseResponse>().getOrThrow()
+            .also { parsed ->
+                response.header("ETag")?.let { tag ->
+                    context?.saveToCache(
+                        "$user/$repo", CachedRelease(tag, parsed), GITHUB_RELEASE_CACHE, true
+                    )
+                }
+            }
+
+        else -> throw githubHttpError(user, repo, response)
+    }
+
+    // What the update prompt shows: the newest tag, where to download it, and the
+    // notes of every skipped release (newest first) so a multi-version jump still
+    // lists everything the update adds.
+    data class PendingAppUpdate(
+        val tag: String,
+        val downloadUrl: String,
+        val notes: List<AppUpdateNotes.AppRelease>
+    )
+
+    private const val RELEASE_NOTES_PAGE_SIZE = 30
+
+    /**
+     * Resolves an app update WITHOUT downloading anything: null when up to date,
+     * the tag plus asset url plus cumulative notes otherwise. Throws on check
+     * failure like the fetch does — the caller reports it the way updateApp does.
+     * The notes are best-effort: when the list request fails, the latest
+     * release's own body still backs the prompt instead of failing it.
+     */
+    suspend fun checkPendingAppUpdate(
+        currentVersion: String,
+        updateUrl: String,
+        client: OkHttpClient,
+        context: Context? = null,
+    ): PendingAppUpdate? = run {
+        val (user, repo) = githubRegex.find(updateUrl)?.destructured
+            ?: throw Exception("Invalid Github URL: $updateUrl")
+        val latest = fetchLatestRelease(user, repo, client, context)
+        if (!SemVer.shouldOffer(latest.tagName, currentVersion, semver = true)) return null
+        val downloadUrl = pickApkAsset(latest, user, repo)
+        val notes = runCatching {
+            fetchReleaseNotes(user, repo, client, currentVersion)
+        }.getOrElse {
+            if (it is CancellationException) throw it
+            null
+        }?.takeIf { it.isNotEmpty() }
+            ?: listOf(AppUpdateNotes.AppRelease(latest.tagName, latest.body))
+        PendingAppUpdate(latest.tagName, downloadUrl, notes)
+    }
+
+    // Newest-first notes of every release newer than [current]. Drafts and
+    // pre-releases are skipped: /latest never returns them but the list does.
+    private suspend fun fetchReleaseNotes(
+        user: String,
+        repo: String,
+        client: OkHttpClient,
+        current: String
+    ): List<AppUpdateNotes.AppRelease> = withContext(Dispatchers.IO) {
+        val url = "https://api.github.com/repos/$user/$repo/releases?per_page=" +
+            RELEASE_NOTES_PAGE_SIZE
+        val request = Request.Builder().url(url).build()
+        val body = client.newCall(request).await().use { response ->
+            if (!response.isSuccessful) throw githubHttpError(user, repo, response)
+            response.body.string()
+        }
+        val releases = body.toData<List<GithubReleaseResponse>>().getOrThrow()
+        val notes = releases.filter { !it.draft && !it.prerelease }
+            .map { AppUpdateNotes.AppRelease(it.tagName, it.body) }
+        AppUpdateNotes.pendingReleases(current, notes)
+    }
+
     // Picks the APK the user downloads: prefer an asset named for the device's primary ABI (e.g.
     // "arm64-v8a"); with a single universal APK the sort is a no-op and it is picked anyway.
     // Extracted from getGithubUpdateUrl when the semver parameter landed (2026-09-27) purely to keep
@@ -729,7 +831,12 @@ object AppUpdater {
         val tagName: String,
         @SerialName("created_at")
         val createdAt: String,
-        val assets: List<Asset>
+        val assets: List<Asset>,
+        // Present on /releases and /releases/latest; absent from CachedRelease entries
+        // written before this field existed, hence the defaults.
+        val body: String? = null,
+        val draft: Boolean = false,
+        val prerelease: Boolean = false
     ) {
         @Serializable
         data class Asset(

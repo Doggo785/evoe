@@ -9,7 +9,7 @@
     <ID>ComplexCondition:PlayerEventListener.kt$PlayerEventListener$seek != null &amp;&amp; (seek.epoch == null || seek.epoch == player.queueEpochOrZero) &amp;&amp; player.currentMediaItem?.mediaId == seek.mediaId &amp;&amp; posBefore &lt; RESTORE_SEEK_BELT_MS</ID>
     <ID>CyclomaticComplexMethod:AndroidAutoCallback.kt$AndroidAutoCallback$@CallSuper override fun onSetMediaItems( mediaSession: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: MutableList&lt;MediaItem>, startIndex: Int, startPositionMs: Long )</ID>
     <ID>CyclomaticComplexMethod:AndroidAutoCallback.kt$AndroidAutoCallback$@OptIn(UnstableApi::class) @CallSuper override fun onGetChildren( session: MediaLibrarySession, browser: MediaSession.ControllerInfo, parentId: String, page: Int, pageSize: Int, params: MediaLibraryService.LibraryParams? ): ListenableFuture&lt;LibraryResult&lt;ImmutableList&lt;MediaItem>>></ID>
-    <ID>CyclomaticComplexMethod:AppUpdater.kt$AppUpdater$@Suppress("KotlinConstantConditions") suspend fun updateApp( app: App, ensureInstallPermission: suspend () -> Boolean = { true } ): File?</ID>
+    <ID>CyclomaticComplexMethod:AppUpdater.kt$AppUpdater$@Suppress("KotlinConstantConditions") suspend fun updateApp( app: App, ensureInstallPermission: suspend () -> Boolean = { true }, confirmUpdate: (suspend (PendingAppUpdate) -> Boolean)? = null ): File?</ID>
     <ID>CyclomaticComplexMethod:AppUpdater.kt$AppUpdater$suspend fun getGithubUpdateUrl( currentVersion: String, updateUrl: String, client: OkHttpClient, // Enables ETag caching. Optional so AddViewModel's one-off add flow needs no change; every // looping caller SHOULD pass it, since the loop is what spends the quota. context: Context? = null, )</ID>
     <ID>CyclomaticComplexMethod:AudioEffectsProcessor.kt$AudioEffectsProcessor$override fun queueInput(inputBuffer: ByteBuffer)</ID>
     <ID>CyclomaticComplexMethod:BaseWidget.kt$BaseWidget$override fun onReceive(context: Context?, intent: Intent?)</ID>
@@ -74,7 +74,7 @@
     <ID>LargeClass:PlayerFragment.kt$PlayerFragment : Fragment</ID>
     <ID>LongMethod:AndroidAutoCallback.kt$AndroidAutoCallback$@CallSuper override fun onSetMediaItems( mediaSession: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: MutableList&lt;MediaItem>, startIndex: Int, startPositionMs: Long )</ID>
     <ID>LongMethod:AndroidAutoCallback.kt$AndroidAutoCallback$@OptIn(UnstableApi::class) @CallSuper override fun onGetChildren( session: MediaLibrarySession, browser: MediaSession.ControllerInfo, parentId: String, page: Int, pageSize: Int, params: MediaLibraryService.LibraryParams? ): ListenableFuture&lt;LibraryResult&lt;ImmutableList&lt;MediaItem>>></ID>
-    <ID>LongMethod:AppUpdater.kt$AppUpdater$@Suppress("KotlinConstantConditions") suspend fun updateApp( app: App, ensureInstallPermission: suspend () -> Boolean = { true } ): File?</ID>
+    <ID>LongMethod:AppUpdater.kt$AppUpdater$@Suppress("KotlinConstantConditions") suspend fun updateApp( app: App, ensureInstallPermission: suspend () -> Boolean = { true }, confirmUpdate: (suspend (PendingAppUpdate) -> Boolean)? = null ): File?</ID>
     <ID>LongMethod:BaseWidget.kt$BaseWidget.Companion$fun updateView( clazz: Class&lt;*>, controller: MediaController?, image: Bitmap?, context: Context, views: RemoteViews, )</ID>
     <ID>LongMethod:Cached.kt$Cached$suspend inline fun &lt;reified T : EchoMediaItem> loadMedia( app: App, extension: Extension&lt;*>, state: MediaState&lt;T>, preferCache: Boolean = false, )</ID>
     <ID>LongMethod:EditPlaylistFragment.kt$EditPlaylistFragment$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
@@ -674,7 +674,7 @@
     <ID>PrintStackTrace:App.kt$App$e</ID>
     <ID>PrintStackTrace:ImageUtils.kt$ImageUtils$e</ID>
     <ID>ReturnCount:AndroidAutoCallback.kt$AndroidAutoCallback$@CallSuper override fun onGetLibraryRoot( session: MediaLibrarySession, browser: MediaSession.ControllerInfo, params: MediaLibraryService.LibraryParams? ): ListenableFuture&lt;LibraryResult&lt;MediaItem>></ID>
-    <ID>ReturnCount:AppUpdater.kt$AppUpdater$@Suppress("KotlinConstantConditions") suspend fun updateApp( app: App, ensureInstallPermission: suspend () -> Boolean = { true } ): File?</ID>
+    <ID>ReturnCount:AppUpdater.kt$AppUpdater$@Suppress("KotlinConstantConditions") suspend fun updateApp( app: App, ensureInstallPermission: suspend () -> Boolean = { true }, confirmUpdate: (suspend (PendingAppUpdate) -> Boolean)? = null ): File?</ID>
     <ID>ReturnCount:CacheUtils.kt$CacheUtils$@OptIn(ExperimentalSerializationApi::class) inline fun &lt;reified T> Context.getFromCache( id: String, folderName: String = T::class.java.simpleName, durable: Boolean = false, maxBytes: Long = Long.MAX_VALUE, ): T?</ID>
     <ID>ReturnCount:Cached.kt$Cached$private suspend fun loadAlbumTracksCached( app: App, extension: Extension&lt;*>, item: Album, ): Feed&lt;Track>?</ID>
     <ID>ReturnCount:DexLoader.kt$DexLoader$override fun loadClass(name: String?, resolve: Boolean): Class&lt;*></ID>

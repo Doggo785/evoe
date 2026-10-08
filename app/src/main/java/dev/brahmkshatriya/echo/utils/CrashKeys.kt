@@ -328,6 +328,8 @@ object CrashKeys {
      *   "offered"    a release exists whose tag differs from the running build; nothing downloaded yet.
      *                Absence of this key with app_update_gate_passed=true means no update was on offer,
      *                which is the normal state.
+     *   "declined"   the update was offered and the user chose Later in the prompt — nothing
+     *                downloaded. Re-offered on the next check.
      *   "install_permission_missing"  an update existed, was offered, and the install was refused for want
      *                of the "install unknown apps" permission — either the user declined the system screen
      *                or no handler for ACTION_MANAGE_UNKNOWN_APP_SOURCES exists on the device.
