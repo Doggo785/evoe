@@ -7,6 +7,7 @@ import dev.brahmkshatriya.echo.extensions.MediaState
 import dev.brahmkshatriya.echo.extensions.cache.Cached.getData
 import dev.brahmkshatriya.echo.extensions.cache.Cached.putData
 import dev.brahmkshatriya.echo.extensions.cache.Cached.updateLikeState
+import dev.brahmkshatriya.echo.extensions.testLoadedState
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -29,17 +30,7 @@ class CachedLikeStateTest {
 
     private fun stored(liked: Boolean?): Pair<String, MediaState.Loaded<Track>> {
         val id = "media-$EXTENSION_ID-$TRACK_ID-state"
-        return id to MediaState.Loaded(
-            extensionId = EXTENSION_ID,
-            item = Track(id = TRACK_ID, title = TRACK_TITLE),
-            isFollowed = null,
-            followers = null,
-            isSaved = true,
-            isLiked = liked,
-            isHidden = null,
-            showRadio = false,
-            showShare = false
-        )
+        return id to testLoadedState(liked, EXTENSION_ID, TRACK_ID, TRACK_TITLE)
     }
 
     private suspend fun roundTrip(

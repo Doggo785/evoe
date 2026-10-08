@@ -2,6 +2,7 @@ package dev.brahmkshatriya.echo.playback.listener
 
 import android.content.Context
 import android.net.ConnectivityManager
+import android.os.Bundle
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.C
@@ -26,6 +27,7 @@ import androidx.media3.exoplayer.ExoTimeoutException
 import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import dev.brahmkshatriya.echo.R
 import dev.brahmkshatriya.echo.common.clients.LikeClient
+import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.Message
 import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.di.App
@@ -54,6 +56,7 @@ import dev.brahmkshatriya.echo.playback.ShufflePlayer
 import dev.brahmkshatriya.echo.playback.exceptions.PlayerException
 import dev.brahmkshatriya.echo.playback.queueEpochOrZero
 import dev.brahmkshatriya.echo.utils.CrashKeys
+import dev.brahmkshatriya.echo.utils.Serializer.putSerialized
 import dev.brahmkshatriya.echo.playback.source.StreamableDataSource
 import dev.brahmkshatriya.echo.playback.exceptions.TrackUnavailableException
 import dev.brahmkshatriya.echo.ui.common.ErrorCategory
@@ -135,17 +138,21 @@ class PlayerEventListener(
 
     // Post-start like verification: the playback path resolves MediaState with isLiked
     // null (unknown) instead of waiting out the likes network call, so the sound starts
-    // first and the heart converges here. Runs only for unknown states; anything already
-    // definitive (cache hit, user tap) is left alone. Stale-guard: the timeline item is
-    // re-read on Main before applying, so a user tap (or another update) that landed
-    // meanwhile wins and the late answer is dropped. Failures fall back to the inline
-    // flag, then to unchecked — the heart re-enables either way and re-verifies on the
-    // next track, never staying dead. Deliberately silent on failure (offline is normal).
+    // first and the heart converges here. Triggered from onMediaItemTransition AND the
+    // STATE_READY branch below: a gapless auto-advance keeps the player at READY (the
+    // next period is already prepared), so READY alone never fires for it, while a
+    // manual Next goes through BUFFERING first. Runs only for resolved-but-unknown
+    // states (see shouldVerifyLikeState); anything already definitive (cache hit, user
+    // tap) is left alone. Stale-guard: the timeline item is re-read on Main before
+    // applying, so a user tap (or another update) that landed meanwhile wins and the
+    // late answer is dropped. Failures fall back to the inline flag, then to unchecked —
+    // the heart re-enables either way and re-verifies on the next track, never staying
+    // dead. Deliberately silent on failure (offline is normal).
     private var likeVerifyJob: Job? = null
 
     private fun verifyCurrentLikeState() {
         val item = player.currentMediaItem ?: return
-        if ((item.state as? MediaState.Loaded<Track>)?.isLiked != null) return
+        if (!shouldVerifyLikeState(item.state)) return
         likeVerifyJob?.cancel()
         likeVerifyJob = scope.launch(Dispatchers.IO) {
             val liked = resolveVerifiedLike(item)
@@ -171,9 +178,24 @@ class PlayerEventListener(
 
     private fun applyVerifiedLike(mediaId: String, liked: Boolean) {
         val current = player.currentMediaItem?.takeIf { it.mediaId == mediaId } ?: return
-        if ((current.state as? MediaState.Loaded<Track>)?.isLiked != null) return
+        val loaded = current.state as? MediaState.Loaded<Track>
+        if (loaded == null || loaded.isLiked != null) return
+        // Update the state's isLiked, not just the userRating: the heart's enabled gate
+        // reads the state (PlayerFragment), the rating drives the checked glyph and the
+        // controllers. A rating-only write would fill the heart without ever enabling it.
+        // Written as the MediaState<Track> supertype on purpose: the timeline reader
+        // is polymorphic (MediaItemUtils.getState) and a concrete Loaded encoding
+        // carries no discriminator — it decodes to null and crashes applyCurrent.
+        // The reified type follows the static type, so it must be stated here.
+        val extras = Bundle().apply {
+            current.mediaMetadata.extras?.let(::putAll)
+            putSerialized<MediaState<Track>>("state", loaded.withVerifiedLike(liked))
+        }
         val rated = current.buildUpon().setMediaMetadata(
-            current.mediaMetadata.buildUpon().setUserRating(ThumbRating(liked)).build()
+            current.mediaMetadata.buildUpon()
+                .setUserRating(ThumbRating(liked))
+                .setExtras(extras)
+                .build()
         ).build()
         player.replaceMediaItem(player.currentMediaItemIndex, rated)
         scope.launch(Dispatchers.IO) {
@@ -331,6 +353,11 @@ class PlayerEventListener(
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
         if (mediaItem == null) return  // fired on player.release() with index=0; don't overwrite saved position
         updateCustomLayout()
+        // Like verification for the incoming track. A gapless auto-advance never leaves
+        // READY, so the STATE_READY branch below cannot be its trigger — this is the
+        // only one that fires for it. Unresolved (Unloaded) items are skipped here on
+        // purpose: their resolve is still in flight and will hit READY right after.
+        verifyCurrentLikeState()
         // Persist the current index so cold-start restore seeks to the correct track. mediaItem is the
         // new current item.
         val fullIndex = player.currentMediaItemIndex
@@ -1906,3 +1933,29 @@ class PlayerEventListener(
 // drift would reintroduce that risk by a different route.
 internal fun Throwable.anyCause(predicate: (Throwable) -> Boolean): Boolean =
     generateSequence(this) { it.cause }.any(predicate)
+
+// Post-start like verification rules (pure, JVM-testable — see LikeVerificationTest).
+//
+// Only a resolved-but-unknown state verifies: Loaded with isLiked == null. Definitive
+// states (cache hit, user tap) are left alone, and Unloaded items are skipped here —
+// their stream resolve is still in flight and the STATE_READY branch picks them up
+// right after, so verifying now would race the loader.
+internal fun shouldVerifyLikeState(state: MediaState<*>?): Boolean =
+    state is MediaState.Loaded<*> && state.isLiked == null
+
+// Converged like applied to the timeline state. Copies every field, flips only
+// isLiked — the heart's enabled gate reads the state, so a rating-only write would
+// fill the glyph without ever re-enabling the tap.
+internal fun <T : EchoMediaItem> MediaState.Loaded<T>.withVerifiedLike(
+    liked: Boolean,
+) = MediaState.Loaded(
+    extensionId = extensionId,
+    item = item,
+    isFollowed = isFollowed,
+    followers = followers,
+    isSaved = isSaved,
+    isLiked = liked,
+    isHidden = isHidden,
+    showRadio = showRadio,
+    showShare = showShare
+)
