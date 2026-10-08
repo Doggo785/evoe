@@ -629,8 +629,8 @@ object AppUpdater {
         // APP update path (the release/stable arms in updateApp) is the only caller that passes true.
         semver: Boolean = false,
     ) = run {
-        // Every message below names the repo. This function has TWO callers — updateApp (the APP
-        // update, repo = app_github_repo) and getUpdateFileUrl (the EXTENSION update, repo = that
+        // Every message below names the repo. This function has TWO callers — checkPendingAppUpdate
+        // (the APP update, repo = app_github_repo) and getUpdateFileUrl (the EXTENSION update, repo = that
         // extension's) — and their failures were previously worded identically, so a user-facing
         // report could not be attributed to either path. The repo is a plain string, so it survives
         // R8 obfuscation and shows up in the in-app trace view where class names do not.
