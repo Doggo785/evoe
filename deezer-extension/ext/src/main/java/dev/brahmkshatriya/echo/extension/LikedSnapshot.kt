@@ -21,8 +21,7 @@ internal data class LikedSnapshot(
 // Null when results/data are missing: callers degrade (empty shelf, unknown like),
 // never throw over a broken payload.
 internal fun parseLikedResults(results: JsonObject?): LikedSnapshot? {
-    if (results == null) return null
-    val data = results["data"]?.jsonArray ?: return null
+    val data = results?.get("data")?.jsonArray ?: return null
     val entries = data.filterIsInstance<JsonObject>()
     val ids = entries.mapNotNullTo(HashSet()) { entry ->
         runCatching { entry["SNG_ID"]?.jsonPrimitive?.content }.getOrNull()
