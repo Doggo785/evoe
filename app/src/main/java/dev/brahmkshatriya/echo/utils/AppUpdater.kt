@@ -202,6 +202,20 @@ object AppUpdater {
         return if (declined) null else resolved.downloadUrl
     }
 
+    // Shared by the "release" and "stable" arms below, which stay separate on
+    // purpose (see the stable arm's note): same check, two channels.
+    private suspend fun resolveGithubUpdate(
+        version: String,
+        githubRepo: String,
+        confirmUpdate: (suspend (PendingAppUpdate) -> Boolean)?,
+        context: Context?
+    ): String? {
+        val currentVersion = version.substringBefore('_')
+        val updateUrl = "https://api.github.com/repos/$githubRepo/releases"
+        val pending = checkPendingAppUpdate(currentVersion, updateUrl, client, context)
+        return confirmOrNull(pending, confirmUpdate)
+    }
+
     @Suppress("KotlinConstantConditions")
     suspend fun updateApp(
         app: App,
@@ -266,23 +280,15 @@ object AppUpdater {
                 //   It reads /releases/LATEST, so the release must be published and not a draft or
                 //         pre-release.
                 "release" -> {
-                    val currentVersion = version.substringBefore('_')
-                    val updateUrl = "https://api.github.com/repos/$githubRepo/releases"
-                    val pending = checkPendingAppUpdate(
-                        currentVersion, updateUrl, client, app.context
-                    )
-                    confirmOrNull(pending, confirmUpdate) ?: return null
+                    resolveGithubUpdate(version, githubRepo, confirmUpdate, app.context)
+                        ?: return null
                 }
 
                 // UPSTREAM'S CHANNEL, NOT BUILT HERE — kept so a stable build would still work if one were
                 // ever produced. See the buildTypes note in app/build.gradle.kts.
                 "stable" -> {
-                    val currentVersion = version.substringBefore('_')
-                    val updateUrl = "https://api.github.com/repos/$githubRepo/releases"
-                    val pending = checkPendingAppUpdate(
-                        currentVersion, updateUrl, client, app.context
-                    )
-                    confirmOrNull(pending, confirmUpdate) ?: return null
+                    resolveGithubUpdate(version, githubRepo, confirmUpdate, app.context)
+                        ?: return null
                 }
 
                 "nightly" -> {
