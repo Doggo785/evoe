@@ -626,6 +626,28 @@ class DeezerParser(private val session: DeezerSession) {
         return fb.hasArtist(artistId)
     }
 
+    /**
+     * Featuring-aware sibling: the likes endpoint does not always credit guests in
+     * ARTISTS — some entries carry them only as display text (VERSION / SNG_TITLE
+     * "feat."). When [artistName] is given, a case-insensitive featuring-name match
+     * counts too, mirroring the title check in
+     * [DeezerArtistClient.filterArtistLikedTracks]. SNG_CONTRIBUTORS is deliberately
+     * ignored: those are writer/producer credits, not performers.
+     */
+    fun JsonObject.mentionsArtist(artistId: String, artistName: String?): Boolean =
+        mentionsArtist(artistId) || matchesFeatName(artistName)
+
+    private fun JsonObject.matchesFeatName(artistName: String?): Boolean =
+        !artistName.isNullOrBlank() && (
+            featNamesFromDisplay().any { it.equals(artistName, ignoreCase = true) } ||
+                ((unwrap()["FALLBACK"] as? JsonObject)?.featNamesFromDisplay()?.any {
+                    it.equals(artistName, ignoreCase = true)
+                } == true)
+            )
+
+    private fun JsonObject.featNamesFromDisplay(): List<String> =
+        featNamesFromTitle("${str("SNG_TITLE").orEmpty()} ${str("VERSION").orEmpty()}")
+
     private fun JsonObject.hasArtist(artistId: String): Boolean {
         if (str("ART_ID") == artistId) return true
         return arr("ARTISTS")?.any { (it as? JsonObject)?.str("ART_ID") == artistId } == true

@@ -101,8 +101,73 @@ class ArtistLikedShelfTest {
     private fun entry(json: String): JsonObject =
         Json.parseToJsonElement(json).jsonObject
 
-    private fun mentions(json: String, artistId: String) =
-        parser.run { entry(json).mentionsArtist(artistId) }
+    private fun mentions(json: String, artistId: String, artistName: String? = null) =
+        parser.run { entry(json).mentionsArtist(artistId, artistName) }
+
+    @Test
+    fun `prefilter matches a featuring name in VERSION`() {
+        assertTrue(
+            mentions(
+                """{"SNG_ID":"2","SNG_TITLE":"T","VERSION":"(feat. A)","ART_ID":"7","ART_NAME":"Other"}""",
+                "42",
+                "A"
+            )
+        )
+    }
+
+    @Test
+    fun `prefilter needs the name to match featuring display text`() {
+        val json =
+            """{"SNG_ID":"2","SNG_TITLE":"T","VERSION":"(feat. A)","ART_ID":"7","ART_NAME":"Other"}"""
+        assertFalse(mentions(json, "42"))
+        assertFalse(mentions(json, "42", "B"))
+    }
+
+    @Test
+    fun `prefilter matches a featuring name in the title itself`() {
+        assertTrue(
+            mentions(
+                """{"SNG_ID":"6","SNG_TITLE":"Song feat. A","ART_ID":"7","ART_NAME":"Other"}""",
+                "42",
+                "A"
+            )
+        )
+    }
+
+    @Test
+    fun `prefilter matches a featuring name case-insensitively`() {
+        assertTrue(
+            mentions(
+                """{"SNG_ID":"2","SNG_TITLE":"T","VERSION":"(FEAT. a)","ART_ID":"7","ART_NAME":"Other"}""",
+                "42",
+                "A"
+            )
+        )
+    }
+
+    @Test
+    fun `prefilter matches a featuring name through FALLBACK display data`() {
+        assertTrue(
+            mentions(
+                """{"SNG_ID":"3","SNG_TITLE":"Dead","ART_ID":"7","ART_NAME":"Other",
+                    "FALLBACK":{"SNG_ID":"3","SNG_TITLE":"Live","VERSION":"(feat. A)",
+                    "ART_ID":"7","ART_NAME":"Other"}}""",
+                "42",
+                "A"
+            )
+        )
+    }
+
+    @Test
+    fun `filter keeps tracks where the featuring name matches the title`() {
+        val tracks = listOf(
+            track("f1", "7").copy(title = "Song (feat. A)"),
+            track("f2", "7").copy(title = "Plain Song")
+        )
+        assertEquals(listOf("f1"), filterArtistLikedTracks(tracks, "42", "A").map { it.id })
+        assertTrue(filterArtistLikedTracks(tracks, "42").isEmpty())
+        assertTrue(filterArtistLikedTracks(tracks, "42", "B").isEmpty())
+    }
 
     @Test
     fun `prefilter matches the legacy ART_ID field`() {

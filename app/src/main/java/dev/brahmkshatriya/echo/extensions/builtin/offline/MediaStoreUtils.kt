@@ -767,8 +767,8 @@ object MediaStoreUtils {
     private fun String?.splitArtists(exclusions: Set<String> = emptySet()) =
         if (this != null && exclusions.contains(this.trim()))
             listOf(this.trim())
-        else this?.split(",", "&", " and ")
-            ?.mapNotNull { it.trim().takeIf { s -> s.isNotBlank() } }
+        else this?.let { splitArtistField(it) }
+            ?.mapNotNull { it.takeIf { s -> s.isNotBlank() } }
             ?: listOf(null)
 
     /**

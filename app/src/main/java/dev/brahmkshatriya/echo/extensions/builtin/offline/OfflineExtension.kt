@@ -340,9 +340,10 @@ class OfflineExtension(
             // a full-width menu card opening the whole list (same shape as
             // DeezerArtistClient). Same id scheme ("<id>_liked") and same count extra
             // so Unified dresses both with the localized title + subtitle.
-            // Hidden when empty.
+            // Matches main artists by id and featuring guests by display title
+            // ("Song (feat. A)"), mirroring the Deezer side. Hidden when empty.
             val liked = library.likedPlaylist?.songList
-                ?.filter { it.artists.any { a -> a.id == artist.id } }
+                ?.filter { isLikedByArtist(it, artist) }
                 ?.toList().orEmpty()
             val likedShelf = liked.takeIf { it.isNotEmpty() }?.let { likedTracks ->
                 Shelf.Category(

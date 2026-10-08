@@ -11,6 +11,7 @@ import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.extension.DeezerApi
 import dev.brahmkshatriya.echo.extension.DeezerExtension
 import dev.brahmkshatriya.echo.extension.DeezerParser
+import dev.brahmkshatriya.echo.extension.featNamesFromTitle
 import kotlinx.coroutines.async
 import kotlinx.coroutines.supervisorScope
 import kotlinx.serialization.json.JsonObject
@@ -61,9 +62,9 @@ class DeezerArtistClient(private val deezerExtension: DeezerExtension, private v
      * A full-width clickable [Shelf.Category] opening the whole track list (big rows
      * with swipe-to-queue, play/shuffle) — tapping it must land on tracks you can
      * swipe, not on an inline preview. Reads the user's likes via the existing
-     * favorite_song.getList endpoint and keeps only the tracks where this artist
-     * appears (main or featured — [Track.artists] carries all of them after
-     * [DeezerParser.graftFavTrack]).
+     * favorite_song.getList endpoint and keeps the tracks involving this artist: main
+     * or featured in [Track.artists] after [DeezerParser.graftFavTrack], plus featuring
+     * guests credited only as display text ("feat." in title/VERSION, matched by name).
      *
      * Null when there is nothing to show (no likes, none for this artist, or the likes
      * request failed e.g. offline) so the caller renders nothing instead of an empty menu.
@@ -76,17 +77,17 @@ class DeezerArtistClient(private val deezerExtension: DeezerExtension, private v
      * which re-reads the cache — busted first on manual refresh — instead of replaying
      * a stale captured list.
      */
-    private suspend fun loadLikedTracks(artistId: String): List<Track> {
+    private suspend fun loadLikedTracks(artist: Artist): List<Track> {
         val entries = deezerExtension.getLikedEntriesCached()
-        return entries.filter { parser.run { it.mentionsArtist(artistId) } }
+        return entries.filter { parser.run { it.mentionsArtist(artist.id, artist.name) } }
             .map { parser.graftFavTrack(it) }
-            .let { filterArtistLikedTracks(it, artistId) }
+            .let { filterArtistLikedTracks(it, artist.id, artist.name) }
     }
 
     private suspend fun buildLikedShelf(artist: Artist): Shelf? {
-        val tracks = runCatching { loadLikedTracks(artist.id) }.getOrNull().orEmpty()
+        val tracks = runCatching { loadLikedTracks(artist) }.getOrNull().orEmpty()
         if (tracks.isEmpty()) return null
-        return likedCategory(artist.id, tracks) { loadLikedTracks(artist.id) }
+        return likedCategory(artist.id, tracks) { loadLikedTracks(artist) }
     }
 
     private fun buildRelatedArtistsShelf(artist: Artist, jObject: JsonObject): Shelf? {
@@ -182,8 +183,16 @@ class DeezerArtistClient(private val deezerExtension: DeezerExtension, private v
 
         // Pure helpers, unit-tested without network.
 
-        internal fun filterArtistLikedTracks(tracks: List<Track>, artistId: String) =
-            tracks.filter { track -> track.artists.any { it.id == artistId } }
+        internal fun filterArtistLikedTracks(
+            tracks: List<Track>,
+            artistId: String,
+            artistName: String? = null,
+        ) = tracks.filter { track ->
+            track.artists.any { it.id == artistId } ||
+                (!artistName.isNullOrBlank() && featNamesFromTitle(track.title).any {
+                    it.equals(artistName, ignoreCase = true)
+                })
+        }
 
         // The menu itself (pure, unit-tested): a full-width card opening the whole
         // list. Title stays the English fallback and subtitle stays null — this module
