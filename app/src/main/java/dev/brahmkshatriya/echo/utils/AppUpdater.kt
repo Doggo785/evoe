@@ -186,10 +186,27 @@ object AppUpdater {
         names.any { it in STORE_INSTALLERS }
     }.getOrDefault(true)
 
+    // The USER confirmation, threaded in as a lambda for the same reason as
+    // ensureInstallPermission: updateApp holds `app` and lambdas, not a host
+    // Activity, so it cannot show the prompt itself. Called after an update
+    // resolves and before anything downloads — declining returns null exactly
+    // like "no update", and the next check re-offers. Null keeps the legacy
+    // auto-install for callers without UI.
+    private suspend fun confirmOrNull(
+        pending: PendingAppUpdate?,
+        confirmUpdate: (suspend (PendingAppUpdate) -> Boolean)?
+    ): String? {
+        val resolved = pending ?: return null
+        val declined = confirmUpdate != null && !confirmUpdate(resolved)
+        if (declined) CrashKeys.onAppUpdateStage("declined")
+        return if (declined) null else resolved.downloadUrl
+    }
+
     @Suppress("KotlinConstantConditions")
     suspend fun updateApp(
         app: App,
-        ensureInstallPermission: suspend () -> Boolean = { true }
+        ensureInstallPermission: suspend () -> Boolean = { true },
+        confirmUpdate: (suspend (PendingAppUpdate) -> Boolean)? = null
     ): File? {
         // Install-source gate. This is the ONLY thing standing between a Play user and a sideloaded
         // APK, and it must run before any network work. It sits ALONGSIDE the build-type check
@@ -251,8 +268,10 @@ object AppUpdater {
                 "release" -> {
                     val currentVersion = version.substringBefore('_')
                     val updateUrl = "https://api.github.com/repos/$githubRepo/releases"
-                    getGithubUpdateUrl(currentVersion, updateUrl, client, app.context, semver = true)
-                        ?: return null
+                    val pending = checkPendingAppUpdate(
+                        currentVersion, updateUrl, client, app.context
+                    )
+                    confirmOrNull(pending, confirmUpdate) ?: return null
                 }
 
                 // UPSTREAM'S CHANNEL, NOT BUILT HERE — kept so a stable build would still work if one were
@@ -260,8 +279,10 @@ object AppUpdater {
                 "stable" -> {
                     val currentVersion = version.substringBefore('_')
                     val updateUrl = "https://api.github.com/repos/$githubRepo/releases"
-                    getGithubUpdateUrl(currentVersion, updateUrl, client, app.context, semver = true)
-                        ?: return null
+                    val pending = checkPendingAppUpdate(
+                        currentVersion, updateUrl, client, app.context
+                    )
+                    confirmOrNull(pending, confirmUpdate) ?: return null
                 }
 
                 "nightly" -> {
