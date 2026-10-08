@@ -2,6 +2,7 @@ package dev.brahmkshatriya.echo.extension.clients
 
 import dev.brahmkshatriya.echo.common.helpers.Page
 import dev.brahmkshatriya.echo.common.helpers.PagedData
+import dev.brahmkshatriya.echo.common.helpers.featNamesFromTitle
 import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.Feed
@@ -61,32 +62,39 @@ class DeezerArtistClient(private val deezerExtension: DeezerExtension, private v
      * A full-width clickable [Shelf.Category] opening the whole track list (big rows
      * with swipe-to-queue, play/shuffle) — tapping it must land on tracks you can
      * swipe, not on an inline preview. Reads the user's likes via the existing
-     * favorite_song.getList endpoint and keeps only the tracks where this artist
-     * appears (main or featured — [Track.artists] carries all of them after
-     * [DeezerParser.graftFavTrack]).
+     * favorite_song.getList endpoint and keeps the tracks involving this artist: main
+     * or featured in [Track.artists] after [DeezerParser.graftFavTrack], plus featuring
+     * guests credited only as display text ("feat." in title/VERSION, matched by name).
      *
      * Null when there is nothing to show (no likes, none for this artist, or the likes
      * request failed e.g. offline) so the caller renders nothing instead of an empty menu.
      * Failures are swallowed deliberately: a likes outage must not break the whole artist page.
      */
     /**
-     * The artist's liked tracks, read through the session cache and pre-filtered on the
-     * raw form so only the handful of matches pay the full parse. Re-runnable: the menu
-     * feed below calls it again on invalidate (pull-to-refresh inside the opened list),
-     * which re-reads the cache — busted first on manual refresh — instead of replaying
-     * a stale captured list.
+     * The artist's liked tracks: fully-resolved records first (every credited artist,
+     * so featuring matches work), read through the session cache. Ids staying
+     * unresolved (failed chunk, odd record) fall back to the light graft per track,
+     * and a total resolve failure degrades to the light path entirely. Re-runnable:
+     * the menu feed below calls it again on invalidate (pull-to-refresh inside the
+     * opened list), which re-reads the caches — busted first on manual refresh —
+     * instead of replaying a stale captured list.
      */
-    private suspend fun loadLikedTracks(artistId: String): List<Track> {
-        val entries = deezerExtension.getLikedEntriesCached()
-        return entries.filter { parser.run { it.mentionsArtist(artistId) } }
-            .map { parser.graftFavTrack(it) }
-            .let { filterArtistLikedTracks(it, artistId) }
+    private suspend fun loadLikedTracks(artist: Artist): List<Track> {
+        val full = deezerExtension.getLikedFullTracksCached()
+        return if (full.isEmpty()) {
+            val entries = deezerExtension.getLikedEntriesCached()
+            entries.filter { parser.run { it.mentionsArtist(artist.id, artist.name) } }
+                .map { parser.graftFavTrack(it) }
+        } else {
+            val snapshot = deezerExtension.getLikedSnapshotCached()
+            snapshot.entries.mapNotNull { parser.pickLikedTrack(full, it) }
+        }.let { filterArtistLikedTracks(it, artist.id, artist.name) }
     }
 
     private suspend fun buildLikedShelf(artist: Artist): Shelf? {
-        val tracks = runCatching { loadLikedTracks(artist.id) }.getOrNull().orEmpty()
+        val tracks = runCatching { loadLikedTracks(artist) }.getOrNull().orEmpty()
         if (tracks.isEmpty()) return null
-        return likedCategory(artist.id, tracks) { loadLikedTracks(artist.id) }
+        return likedCategory(artist.id, tracks) { loadLikedTracks(artist) }
     }
 
     private fun buildRelatedArtistsShelf(artist: Artist, jObject: JsonObject): Shelf? {
@@ -182,8 +190,16 @@ class DeezerArtistClient(private val deezerExtension: DeezerExtension, private v
 
         // Pure helpers, unit-tested without network.
 
-        internal fun filterArtistLikedTracks(tracks: List<Track>, artistId: String) =
-            tracks.filter { track -> track.artists.any { it.id == artistId } }
+        internal fun filterArtistLikedTracks(
+            tracks: List<Track>,
+            artistId: String,
+            artistName: String? = null,
+        ) = tracks.filter { track ->
+            track.artists.any { it.id == artistId } ||
+                (!artistName.isNullOrBlank() && featNamesFromTitle(track.title).any {
+                    it.equals(artistName, ignoreCase = true)
+                })
+        }
 
         // The menu itself (pure, unit-tested): a full-width card opening the whole
         // list. Title stays the English fallback and subtitle stays null — this module
@@ -246,4 +262,10 @@ class DeezerArtistClient(private val deezerExtension: DeezerExtension, private v
             "RELATED_ARTISTS"
         )
     }
+}
+
+private fun DeezerParser.pickLikedTrack(full: Map<String, Track>, entry: JsonObject): Track? {
+    val id = entry.unwrap().str("SNG_ID")
+    if (id.isNullOrBlank()) return null
+    return full[id] ?: runCatching { graftFavTrack(entry) }.getOrNull()
 }

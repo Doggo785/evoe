@@ -17,6 +17,7 @@ import androidx.core.database.getStringOrNull
 import androidx.core.net.toUri
 import dev.brahmkshatriya.echo.R
 import dev.brahmkshatriya.echo.common.helpers.ClientException
+import dev.brahmkshatriya.echo.common.helpers.splitArtistField
 import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.Date.Companion.toYearDate
@@ -767,8 +768,8 @@ object MediaStoreUtils {
     private fun String?.splitArtists(exclusions: Set<String> = emptySet()) =
         if (this != null && exclusions.contains(this.trim()))
             listOf(this.trim())
-        else this?.split(",", "&", " and ")
-            ?.mapNotNull { it.trim().takeIf { s -> s.isNotBlank() } }
+        else this?.let { splitArtistField(it) }
+            ?.mapNotNull { it.takeIf { s -> s.isNotBlank() } }
             ?: listOf(null)
 
     /**
