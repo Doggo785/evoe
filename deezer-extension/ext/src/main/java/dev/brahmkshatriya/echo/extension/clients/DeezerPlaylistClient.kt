@@ -214,15 +214,19 @@ class DeezerPlaylistClient(private val deezerExtension: DeezerExtension, private
     }
 
     /**
-     * Tracks for the virtual Favorite Tracks card: same favorite_song.getList endpoint and
-     * FALLBACK graft as the Library Tracks shelf. An empty likes list is a legitimately empty
-     * playlist, not an error — degrade to empty, never throw.
+     * Tracks for the virtual Favorite Tracks card: the shared likes snapshot (same
+     * favorite_song.getList fetch as the artist menu and isItemLiked) grafted like the
+     * Library Tracks shelf. An empty likes list is a legitimately empty
+     * playlist, not an error — degrade to empty, never throw. A broken gateway
+     * payload degrades the same way the direct fetch did; anything else propagates.
      */
     private suspend fun favoritesTracks(): List<Track> {
-        val json = api.getTracks()
-        val data = (json["results"] as? JsonObject)?.get("data")?.jsonArray
-            ?: JsonArray(emptyList())
-        val base = data.filterIsInstance<JsonObject>().map { parser.graftFavTrack(it) }
+        val entries = try {
+            deezerExtension.getLikedEntriesCached()
+        } catch (_: IllegalStateException) {
+            return emptyList()
+        }
+        val base = entries.map { parser.graftFavTrack(it) }
         return withNextExtras(base)
     }
 

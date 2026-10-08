@@ -43,7 +43,6 @@ import dev.brahmkshatriya.echo.common.settings.SettingSwitch
 import dev.brahmkshatriya.echo.common.settings.Settings
 import dev.brahmkshatriya.echo.extension.DeezerCountries.getDefaultCountryIndex
 import dev.brahmkshatriya.echo.extension.DeezerCountries.getDefaultLanguageIndex
-import dev.brahmkshatriya.echo.extension.api.DeezerTrack
 import dev.brahmkshatriya.echo.extension.clients.DeezerAlbumClient
 import dev.brahmkshatriya.echo.extension.clients.DeezerArtistClient
 import dev.brahmkshatriya.echo.extension.clients.DeezerHomeFeedClient
@@ -365,8 +364,7 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
     // Truly unknown (media pages, first verification): one network fetch, then the
     // answer is definitive only if the list was not truncated.
     private suspend fun fetchVerified(item: Track): Boolean {
-        val (ids, complete) = fetchLikedTracks()
-        likeState.merge(ids, complete)
+        fetchLikedTracks()
         return likeState.resolve(item.id, item.lovedFlag) ?: false
     }
 
@@ -377,35 +375,23 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
             else -> null
         }
 
+    // Ensures the likes snapshot is loaded and merged into [likeState]: shares
+    // getLikedSnapshotCached (and its TTL) instead of issuing a second
+    // favorite_song.getList. A broken payload degrades to empty/incomplete — the same
+    // answer the old dedicated fetch gave — so isItemLiked falls back to the inline
+    // loved flag, never to a throw.
     private suspend fun fetchLikedTracks(): Pair<Set<String>, Boolean> {
-        val results = runCatching {
-            api.getTracks()["results"]?.jsonObject
-        }.getOrNull()
-        val data = results?.get("data")?.jsonArray
-        val pair = if (results == null || data == null) {
-            emptySet<String>() to false
-        } else {
-            val ids = data.mapNotNull {
-                runCatching { it.jsonObject["SNG_ID"]?.jsonPrimitive?.content }.getOrNull()
-            }.toSet()
-            // Truncation guard: nb=LIKES_FETCH_LIMIT in a single shot. A full page is
-            // probably cut, so absence must stay "unknown", not "not liked". Prefer the
-            // server total when present; otherwise the page size decides.
-            val total = listOf("total", "TOTAL", "count", "nb").firstNotNullOfOrNull { key ->
-                (results[key] as? JsonPrimitive)?.content?.toIntOrNull()
-            }
-            val complete = total?.let { ids.size >= it } ?: (ids.size < DeezerTrack.LIKES_FETCH_LIMIT)
-            ids to complete
-        }
-        return pair
+        val snapshot = runCatching { getLikedSnapshotCached() }.getOrNull()
+            ?: return emptySet<String>() to false
+        return snapshot.ids to snapshot.complete
     }
 
     /**
-     * Session cache of the RAW favorite_song.getList entries (unparsed [JsonObject]s).
-     * Raw, not parsed: the per-artist menu pre-filters by artist id on the raw form
-     * ([DeezerParser.mentionsArtist]) and only parses the handful of matches, so a
-     * 10k-likes library costs one download per TTL instead of one download + 10k
-     * parses per artist page.
+     * Session cache of ONE favorite_song.getList fetch serving every likes consumer:
+     * the raw entries for the per-artist menu (pre-filtered on the raw form via
+     * [DeezerParser.mentionsArtist], so only the handful of matches pay the full parse)
+     * and the id set merged into [likeState] for [isItemLiked]. One download per TTL
+     * instead of one per consumer.
      *
      * @Volatile, no mutex: concurrent duplicate fetches are harmless (same endpoint,
      * last write wins) and callers here are already serialized per page load.
@@ -414,25 +400,30 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
      * refresh ([bustLikedCache] via LikeClient), and by age ([LIKED_TTL_MS]).
      */
     @Volatile
-    private var likedEntriesCache: Pair<Long, List<JsonObject>>? = null
+    private var likedSnapshotCache: Pair<Long, LikedSnapshot>? = null
 
-    suspend fun getLikedEntriesCached(forceRefresh: Boolean = false): List<JsonObject> {
-        val cached = likedEntriesCache
+    internal suspend fun getLikedSnapshotCached(forceRefresh: Boolean = false): LikedSnapshot {
+        val cached = likedSnapshotCache
         val now = System.currentTimeMillis()
         if (!forceRefresh && cached != null && now - cached.first < LIKED_TTL_MS) return cached.second
-        val data = api.getTracks()["results"]?.jsonObject?.get("data")?.jsonArray
+        val snapshot = runCatching {
+            parseLikedResults(api.getTracks()["results"]?.jsonObject)
+        }.getOrNull()
             // IllegalStateException, not Exception: the gateway answered with an error
             // body instead of results.data, i.e. a broken contract, not a generic failure.
             // (Codacy ErrorProne flags a bare Exception here.) The caller swallows it
             // into "no liked menu" either way.
             ?: throw IllegalStateException("Failed to load liked tracks")
-        val fresh = data.filterIsInstance<JsonObject>()
-        likedEntriesCache = now to fresh
-        return fresh
+        likeState.merge(snapshot.ids, snapshot.complete)
+        likedSnapshotCache = now to snapshot
+        return snapshot
     }
 
+    suspend fun getLikedEntriesCached(forceRefresh: Boolean = false): List<JsonObject> =
+        getLikedSnapshotCached(forceRefresh).entries
+
     override suspend fun bustLikedCache() {
-        likedEntriesCache = null
+        likedSnapshotCache = null
     }
 
     override suspend fun listEditablePlaylists(track: Track?): List<Pair<Playlist, Boolean>> {
@@ -848,7 +839,7 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
 
     override fun setLoginUser(user: User?) {
         likeState.reset()
-        likedEntriesCache = null
+        likedSnapshotCache = null
         // THE ONLY PLACE THE REFUSAL LATCH IS CLEARED, and it covers both directions: a successful
         // login (new credentials, so the old refusal is stale) and a logout (nothing left to refuse).
         // Chosen over onLogin because this is the chokepoint the host drives - it runs on login, on

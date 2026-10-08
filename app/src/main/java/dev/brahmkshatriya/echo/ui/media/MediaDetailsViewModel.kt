@@ -147,7 +147,18 @@ abstract class MediaDetailsViewModel(
     // which call refresh() and must keep serving the cached tracks. No-op for non-playlist items.
     fun refreshTracks() = viewModelScope.launch {
         when (val i = getItem()?.second) {
-            is Playlist -> bustPlaylistTracksCache(app, i.id)
+            is Playlist -> {
+                bustPlaylistTracksCache(app, i.id)
+                // The virtual Favorite Tracks card rows ARE the shared likes snapshot,
+                // so its refresh busts that too instead of serving up-to-TTL-stale likes.
+                // Ordinary playlists skip it: busting there would nuke the cache on every
+                // unrelated refresh for no gain. Same defensive shape as the Artist branch.
+                if (shouldBustLikedCache(i)) runCatching {
+                    extensionFlow.value?.getIf<LikeClient, Any?>(app.throwFlow) {
+                        bustLikedCache()
+                    }
+                }
+            }
             // Albums are cached durably too as of this change, so pull-to-refresh has to bust theirs or the
             // gesture does nothing for 24h on an album page.
             is Album -> bustAlbumTracksCache(app, i.id)
@@ -207,6 +218,17 @@ abstract class MediaDetailsViewModel(
     }
 
     companion object {
+
+        // Routing key of the virtual Favorite Tracks card, synthesized by the extension
+        // library (DeezerPlaylistClient.FAVORITES_EXTRA — duplicated, not imported: the
+        // app module cannot depend on a bundled extension). Keyed on the extra, never
+        // the id's shape: ids are opaque strings.
+        private const val FAVORITES_PLAYLIST_EXTRA = "favorites"
+
+        // True only for the virtual Favorite Tracks card. Internal for tests; the
+        // Playlist branch of refreshTracks is the only caller.
+        internal fun shouldBustLikedCache(item: EchoMediaItem): Boolean =
+            item is Playlist && item.extras.containsKey(FAVORITES_PLAYLIST_EXTRA)
 
         suspend fun notFound(app: App, id: Int) {
             val notFound = app.context.run { getString(R.string.no_x_found, getString(id)) }

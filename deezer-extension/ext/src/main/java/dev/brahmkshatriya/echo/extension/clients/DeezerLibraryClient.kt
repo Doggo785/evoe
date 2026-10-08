@@ -52,6 +52,9 @@ class DeezerLibraryClient(
     private val configs: Map<String, TabConfig> = listOf(
         TabConfig(TabId.PLAYLISTS, "Playlists", { getPlaylists() }) { it.tabDataArray("playlists") },
         TabConfig(TabId.ALBUMS, "Albums", { getAlbums() }) { it.tabDataArray("albums") },
+        // Unreached at fetch time: loadAll/loadSingle read the shared likes snapshot
+        // below (one favorite_song.getList per TTL for library, artist menu, favorites
+        // playlist and isItemLiked together) instead of a dedicated call.
         TabConfig(TabId.TRACKS, "Tracks", { getTracks() }) { it.resultsDataArray() },
         TabConfig(TabId.ARTISTS, "Artists", { getArtists() }) { it.tabDataArray("artists") },
     ).associateBy { it.id.id }
@@ -75,13 +78,21 @@ class DeezerLibraryClient(
         deezerExtension.handleArlExpiration()
         configs.values.map { cfg ->
             async(cpuDispatcher) {
+                if (cfg.id == TabId.TRACKS) {
+                    // Broken payload degrades to a missing shelf (what the null extractor
+                    // did); network errors still fail the tab, as before.
+                    val entries = try {
+                        deezerExtension.getLikedEntriesCached()
+                    } catch (_: IllegalStateException) {
+                        return@async null
+                    }
+                    val grafted = entries.map { graftFavTrack(it) }
+                    return@async grafted.takeIf { it.isNotEmpty() }
+                        ?.let { Shelf.Lists.Items(id = cfg.title, title = cfg.title, list = it) }
+                }
                 val json = cfg.request(api)
                 val items = cfg.extractor(json) ?: return@async null
-                if (cfg.id == TabId.TRACKS) {
-                    val grafted = items.mapNotNull { el -> (el as? JsonObject)?.let { graftFavTrack(it) } }
-                    grafted.takeIf { it.isNotEmpty() }
-                        ?.let { Shelf.Lists.Items(id = cfg.title, title = cfg.title, list = it) }
-                } else if (cfg.id == TabId.PLAYLISTS) {
+                if (cfg.id == TabId.PLAYLISTS) {
                     withFavoritesCard(cfg.title, parser.run { items.toShelfItemsList(cfg.title) })
                 } else parser.run { items.toShelfItemsList(cfg.title) }
             }
@@ -89,12 +100,20 @@ class DeezerLibraryClient(
     }
 
     private suspend fun loadSingle(id: String?): List<Shelf> {
+        if (id == TabId.TRACKS.id) {
+            // Same contract as the null extractor: broken payload is an empty shelf,
+            // network errors still throw.
+            val entries = try {
+                deezerExtension.getLikedEntriesCached()
+            } catch (_: IllegalStateException) {
+                return emptyList()
+            }
+            return entries.map { graftFavTrack(it).toShelf() }
+        }
         val cfg = configs[id] ?: return emptyList()
         deezerExtension.handleArlExpiration()
         val json = cfg.request(api)
         val arr = cfg.extractor(json) ?: return emptyList()
-        if (id == TabId.TRACKS.id)
-            return arr.mapNotNull { el -> (el as? JsonObject)?.let { graftFavTrack(it).toShelf() } }
         val items = parser.run { arr.mapNotNull { it.jsonObject.toEchoMediaItem()?.toShelf() } }
         if (id == TabId.PLAYLISTS.id) return prependCardToPlaylists(items)
         return items
