@@ -910,6 +910,9 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
     override fun setLoginUser(user: User?) {
         likeState.reset()
         likedSnapshotCache = null
+        // The remembered loved id belongs to the previous account: a user switch or a
+        // logout must forget it, or the next account would resolve someone else's list.
+        session.settings?.putString(LOVED_PLAYLIST_ID_KEY, null)
         // THE ONLY PLACE THE REFUSAL LATCH IS CLEARED, and it covers both directions: a successful
         // login (new credentials, so the old refusal is stale) and a logout (nothing left to refuse).
         // Chosen over onLogin because this is the chokepoint the host drives - it runs on login, on
@@ -1048,5 +1051,17 @@ class DeezerExtension : HomeFeedClient, TrackClient, LikeClient, RadioClient,
         // 10 minutes per session. In-app like/unlike, user change and manual refresh
         // bust unconditionally, so this bounds only likes edited from another device.
         private const val LIKED_TTL_MS = 10L * 60 * 1000
+
+        // Remembered loved-tracks playlist id: Home only carries the entry while it is
+        // recently played, so the first sighting is persisted and later resolves fetch
+        // the metadata straight from the playlist endpoint. Cleared on user switch/logout.
+        private const val LOVED_PLAYLIST_ID_KEY = "loved_playlist_id"
+    }
+
+    internal fun rememberedLovedPlaylistId(): String? =
+        session.settings?.getString(LOVED_PLAYLIST_ID_KEY)?.takeIf { it.isNotBlank() }
+
+    internal fun rememberLovedPlaylistId(id: String) {
+        session.settings?.putString(LOVED_PLAYLIST_ID_KEY, id)
     }
 }
