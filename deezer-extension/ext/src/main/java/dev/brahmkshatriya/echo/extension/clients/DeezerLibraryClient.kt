@@ -132,29 +132,49 @@ class DeezerLibraryClient(
     // delegate rather than inlining the call sites so both shelves keep reading identically.
     private fun graftFavTrack(entry: JsonObject): Track = parser.graftFavTrack(entry)
 
-    // The real loved-tracks playlist, resolved from Home's Recently played where Deezer
-    // actually sends it (the library payload never carries it — verified on device
-    // 2026-10-08). A failed or missing resolve degrades to hidden, never to a
-    // synthesized card (user choice): library stays truthful with no placeholder.
+    // The real loved-tracks playlist: first from Home's Recently played where Deezer
+    // sends it (the library payload never carries it — verified on device 2026-10-08),
+    // then from the remembered id, which fetches fresh metadata straight from the
+    // playlist endpoint — so the card survives Recently played and the cover follows
+    // the user-chosen one. Only a failed resolve everywhere degrades to hidden, never
+    // to a synthesized card: library stays truthful with no placeholder.
     // Cancellation is rethrown — a generic catch here would launder it into "hidden".
     private suspend fun resolveLovedPlaylist(): Playlist? {
         deezerExtension.handleArlExpiration()
-        val home = homePageOrNull()
-        val loved = home?.let { runCatching { parser.findLovedPlaylist(it) }.getOrNull() }
-        return loved?.let { item ->
-            item.copy(extras = item.extras + mapOf(DeezerPlaylistClient.FAVORITES_EXTRA to "1"))
-        }
-    }
-
-    private suspend fun homePageOrNull(): JsonObject? {
-        return try {
+        val home = try {
             api.page("home")
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
             null
         }
+        val fresh = home?.let { runCatching { parser.findLovedPlaylist(it) }.getOrNull() }
+        if (fresh != null) {
+            deezerExtension.rememberLovedPlaylistId(fresh.id)
+            return tagLoved(fresh)
+        }
+        return rememberedLovedPlaylist()
     }
+
+    private suspend fun rememberedLovedPlaylist(): Playlist? {
+        val id = deezerExtension.rememberedLovedPlaylistId()
+        val json = id?.let { lovedId ->
+            try {
+                api.playlist(Playlist(id = lovedId, title = "", isEditable = false))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            }
+        }
+        val loved = json?.let { body ->
+            runCatching { parser.run { body["results"]?.jsonObject?.toPlaylist() } }.getOrNull()
+        }
+        return loved?.let { tagLoved(it) }
+    }
+
+    private fun tagLoved(playlist: Playlist): Playlist =
+        playlist.copy(extras = playlist.extras + mapOf(DeezerPlaylistClient.FAVORITES_EXTRA to "1"))
 
     companion object {
         // LEGACY synthetic "Favorite Tracks" card: kept for already-cached items carrying
