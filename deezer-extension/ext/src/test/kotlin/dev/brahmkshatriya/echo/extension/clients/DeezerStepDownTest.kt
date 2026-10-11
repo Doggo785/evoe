@@ -54,4 +54,14 @@ class DeezerStepDownTest {
     fun `fallback id is an alternate recording`() {
         assertTrue(DeezerTrackClient.isAlternateRecording("222", "111"))
     }
+
+    @Test
+    fun `bottom rung uses fallback id when present`() {
+        assertEquals("222", DeezerTrackClient.bottomRungFetchId("222", "111"))
+    }
+
+    @Test
+    fun `bottom rung refreshes current track when fallback is empty`() {
+        assertEquals("111", DeezerTrackClient.bottomRungFetchId("", "111"))
+    }
 }
