@@ -96,7 +96,11 @@ class DeezerTrackClient(private val deezerExtension: DeezerExtension, private va
                     // than kept as a belt, because the step-down above makes it unreachable and leaving
                     // it would imply the substitution can still happen at a high quality. It cannot:
                     // by here `quality` is "128" or "mp3".
-                    fetchMediaForTrack(track.extras["FALLBACK_ID"].orEmpty())
+                    // An empty FALLBACK_ID refreshes the SAME track (fresh TRACK_TOKEN) instead of
+                    // querying the gateway with an empty id, which can only fail - a stale token
+                    // refused here with rights/empty media otherwise has no recovery path, while the
+                    // token-decode branch below already recovers exactly this way. See bottomRungFetchId.
+                    fetchMediaForTrack(bottomRungFetchId(track.extras["FALLBACK_ID"].orEmpty(), currentTrackId))
                 }
 
                 mjString.contains("An error occurred while decoding track token") -> {
@@ -394,6 +398,12 @@ class DeezerTrackClient(private val deezerExtension: DeezerExtension, private va
         // re-fetches the SAME recording with a fresh token, which must not be labelled.
         internal fun isAlternateRecording(fallbackTrackId: String?, currentTrackId: String): Boolean =
             fallbackTrackId != null && fallbackTrackId != currentTrackId
+
+        // Bottom-rung recovery target for the no-rights/empty-media branch. A present
+        // FALLBACK_ID substitutes that recording; an empty one falls back to refreshing
+        // the same track, because api.track("") cannot return anything playable.
+        internal fun bottomRungFetchId(fallbackId: String, currentTrackId: String): String =
+            fallbackId.ifEmpty { currentTrackId }
 
         // Hand-off key for a substituted recording, written by createStreamableForQuality and
         // read by loadStreamableMedia. Internal to this file - it never reaches a Track's extras, so it
