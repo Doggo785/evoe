@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.4.1](https://github.com/Doggo785/evoe/compare/v3.4.0...v3.4.1) (2026-10-11)
+
+
+### Bug Fixes
+
+* **deezer:** keep loved card when recents drop it ([f1bb17f](https://github.com/Doggo785/evoe/commit/f1bb17f388ed0200cfe1fd25ec059f2252cf8e7c))
+* **deezer:** refetch current track on empty bottom-rung fallback ([409c4c5](https://github.com/Doggo785/evoe/commit/409c4c5edffa0ba0f27330569abd981f3b3e8dc5))
+
 ## [3.4.0](https://github.com/Doggo785/evoe/compare/v3.3.0...v3.4.0) (2026-10-08)
 
 
